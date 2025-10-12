@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useJobs } from "../lib/jobStore";
+import "./job-dashboard.css";
 
 const statuses = ["waiting", "interview", "offer", "rejected"] as const;
 
@@ -8,7 +9,7 @@ export default function JobDashboard() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
       {statuses.map((s) => (
         <section key={s} className="border rounded p-2 flex flex-col">
           <header className="flex items-center justify-between">

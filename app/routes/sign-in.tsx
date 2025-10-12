@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import "./sign-in.css";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -14,7 +15,7 @@ export default function SignIn() {
   }
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto sign-in-page">
       <h1 className="text-2xl mb-4">Sign In</h1>
       <form onSubmit={submit} className="space-y-3">
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full p-2 border rounded" />

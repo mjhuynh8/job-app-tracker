@@ -1,0 +1,18 @@
+.job-dashboard section {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(10,25,47,0.04);
+  min-height: 120px;
+}
+.job-dashboard .overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15,23,42,0.2) transparent;
+}
+.job-dashboard select {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+}
+.job-dashboard h2 {
+  color: #0b2545;
+}

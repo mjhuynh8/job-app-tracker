@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useJobs } from "../lib/jobStore";
+import "./job-form.css";
 
 export default function JobForm() {
   const { addJob } = useJobs();
@@ -19,7 +20,7 @@ export default function JobForm() {
   }
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-xl mx-auto job-form-page">
       <h1 className="text-2xl mb-4">Add Job</h1>
       <form onSubmit={submit} className="space-y-3">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full p-2 border rounded" />

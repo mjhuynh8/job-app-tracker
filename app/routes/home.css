@@ -1,0 +1,19 @@
+/* NOTE: main() now owns the light-green band (layout). Remove inner background so header/nav contrast is preserved. */
+.home-content {
+  border-radius: 8px;
+  padding: 1.25rem;
+  min-height: 64vh;
+  /* do not set background here — main provides the page band */
+}
+
+/* Ensure the feature cards are readable on the green background */
+.home-content .bg-white {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 6px 18px rgba(10, 25, 47, 0.06);
+}
+
+/* Make sure headings inside cards are high contrast */
+.home-content h3 {
+  color: #0b2545;
+}

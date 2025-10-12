@@ -1,0 +1,16 @@
+.app-footer {
+  background-color: var(--color-footer);
+  color: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.app-footer .container {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  min-height: 44px; /* compact but accessible */
+  display: flex;
+  align-items: center;
+  max-width: var(--content-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}

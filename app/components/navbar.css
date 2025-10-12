@@ -1,0 +1,18 @@
+.app-navbar {
+  background-color: var(--color-navbar);
+  color: #ffffff;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  width: 100%;
+  box-sizing: border-box;
+}
+.app-navbar a {
+  color: rgba(255,255,255,0.95);
+}
+.app-navbar .container {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  max-width: var(--content-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -1,10 +1,11 @@
+import "./footer.css";
+
 export function Footer() {
-  return (
-    <footer className="w-full border-t bg-white dark:bg-gray-900">
-      <div className="container mx-auto p-4 flex items-center justify-between">
-        <div>© 2025 JobApp</div>
-        <div className="text-sm text-gray-600">Names here</div>
-      </div>
-    </footer>
-  );
+	return (
+		<footer className="w-full bg-blue-900 text-white app-footer">
+			<div className="container mx-auto p-2 flex items-center">
+				<div className="text-sm">copyright 2025</div>
+			</div>
+		</footer>
+	);
 }

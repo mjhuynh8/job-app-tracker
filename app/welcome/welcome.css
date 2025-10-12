@@ -1,0 +1,10 @@
+.welcome-page header {
+  margin-bottom: 1rem;
+}
+.welcome-page .rounded-3xl {
+  background: #667ad3;
+  box-shadow: 0 6px 18px rgba(10,25,47,0.06);
+}
+.welcome-page img {
+  display: block;
+}

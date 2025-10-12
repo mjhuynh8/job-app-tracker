@@ -1,44 +1,72 @@
 import type { Route } from "./+types/home";
 import { Link } from "react-router";
+import "./home.css";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Job App Tracker" },
-    { name: "description", content: "Track your job applications." },
-  ];
+	return [
+		{ title: "Job App Tracker" },
+		{ name: "description", content: "Track your job applications." },
+	];
 }
 
 export default function Home() {
-  const signedIn = typeof window !== "undefined" && localStorage.getItem("signedIn") === "true";
+	const signedIn =
+		typeof window !== "undefined" && localStorage.getItem("signedIn") === "true";
 
-  return (
-    <main className="pt-4">
-      <section className="text-center py-8">
-        <h1 className="text-4xl font-bold">Welcome to JobApp</h1>
-        <p className="mt-2 text-gray-600">A simple job application tracker</p>
-        <div className="mt-6 flex justify-center gap-3">
-          {signedIn ? (
-            <>
-              <Link to="/job-form" className="px-4 py-2 bg-blue-600 text-white rounded">Add Job</Link>
-              <Link to="/job-dashboard" className="px-4 py-2 border rounded">Dashboard</Link>
-            </>
-          ) : (
-            <>
-              <Link to="/sign-in" className="px-4 py-2 border rounded">Sign In</Link>
-              <Link to="/sign-up" className="px-4 py-2 bg-green-600 text-white rounded">Sign Up</Link>
-            </>
-          )}
-        </div>
-      </section>
+	return (
+		<>
+			{/* content area (main background moved to layout); this section centers content and takes most of the page */}
+			<section className="max-w-5xl mx-auto py-12 min-h-[64vh] flex flex-col justify-center home-content">
+				<div className="text-center py-4">
+					<h1 className="text-4xl font-bold text-gray-900">Welcome to JobApp</h1>
+					<p className="mt-2 text-gray-700">A simple job application tracker</p>
+					<div className="mt-6 flex justify-center gap-3">
+						{signedIn ? (
+							<>
+								<Link to="/job-form" className="px-4 py-2 bg-blue-600 text-white rounded">
+									Add Job
+								</Link>
+								<Link to="/job-dashboard" className="px-4 py-2 border rounded">
+									Dashboard
+								</Link>
+							</>
+						) : (
+							<>
+								<Link to="/sign-in" className="px-4 py-2 border rounded">
+									Sign In
+								</Link>
+								<Link to="/sign-up" className="px-4 py-2 bg-green-600 text-white rounded">
+									Sign Up
+								</Link>
+							</>
+						)}
+					</div>
+				</div>
 
-      <section className="py-8">
-        <h2 className="text-2xl font-semibold mb-4">Features</h2>
-        <ul className="space-y-2">
-          <li>• Track applications by status</li>
-          <li>• Add skills and company info</li>
-          <li>• Move applications between stages</li>
-        </ul>
-      </section>
-    </main>
-  );
+				{/* three centered boxes for the feature bullets */}
+				<div className="flex justify-center mt-8">
+					<div className="flex flex-col md:flex-row gap-6">
+						<div className="bg-white p-6 rounded shadow w-64 flex items-start">
+							<div>
+								<h3 className="font-semibold mb-2 text-gray-900">Track Applications</h3>
+								<p className="text-sm text-gray-700">• Track applications by status</p>
+							</div>
+						</div>
+						<div className="bg-white p-6 rounded shadow w-64 flex items-start">
+							<div>
+								<h3 className="font-semibold mb-2 text-gray-900">Job Details</h3>
+								<p className="text-sm text-gray-700">• Add skills and company info</p>
+							</div>
+						</div>
+						<div className="bg-white p-6 rounded shadow w-64 flex items-start">
+							<div>
+								<h3 className="font-semibold mb-2 text-gray-900">Move Stages</h3>
+								<p className="text-sm text-gray-700">• Move applications between stages</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</>
+	);
 }

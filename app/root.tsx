@@ -9,6 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import "./styles/global.css";
 import { JobProvider } from "./lib/jobStore";
 
 export const links: Route.LinksFunction = () => [
