@@ -14,7 +14,7 @@ export function Navbar() {
             JobApp
           </Link>
         </div>
-        <div className="flex items-center gap-4">
+        <nav className="flex items-center gap-4">
           <Link to="/" className="hover:underline text-white">
             Front
           </Link>
@@ -38,7 +38,7 @@ export function Navbar() {
               </Link>
             </>
           )}
-        </div>
+        </nav>
       </div>
     </nav>
   );
