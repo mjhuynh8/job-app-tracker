@@ -147,3 +147,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 >>>>>>> d75920f9aab21f4dc2972a806285200c8531adc9
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
