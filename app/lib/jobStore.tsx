@@ -6,6 +6,8 @@ export type Job = {
   company: string;
   skills: string[];
   status: "waiting" | "interview" | "offer" | "rejected";
+  dateApplied: string;
+  notes: string;
 };
 
 type JobContext = {
@@ -19,7 +21,11 @@ const ctx = createContext<JobContext | null>(null);
 export function JobProvider({ children }: { children: any }) {
   const [jobs, setJobs] = useState<Job[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("jobs") || "[]");
+      const stored = JSON.parse(localStorage.getItem("jobs") || "[]");
+      return (stored as any[]).map(j => ({
+        ...j,
+        notes: j.notes ?? "",
+      }));
     } catch {
       return [];
     }
