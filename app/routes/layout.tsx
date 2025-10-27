@@ -7,7 +7,7 @@ export default function Layout() {
 		<div className="min-h-screen flex flex-col">
 			<Header />
 			{/* main content area gets the light-green background so header/nav remain distinct */}
-			<main className="flex-1 bg-green-100">
+			<main className="flex-1 bg-white">
 				<div className="container mx-auto p-4 pt-6 min-h-0">
 					<Outlet />
 				</div>

@@ -3,7 +3,7 @@
   --color-header: #0f3a63; /* dark blue */
   --color-navbar: #2b6cb0; /* lighter blue */
   --color-footer: #0f3a63; /* same as header */
-  --color-main-bg: #ecfdf5; /* light green (Tailwind green-100 equivalent) */
+  --color-main-bg: #ffffff; /* light green (Tailwind green-100 equivalent) */
   --content-max-width: 80rem;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   --page-gutter: 1rem;
