@@ -2,7 +2,7 @@
   background: #ffffff;
   padding: 1.25rem;
   border-radius: 0.5rem;
-  box-shadow: 0 6px 18px rgba(10,25,47,0.06);
+  box-shadow: 0 6px 18px rgba(10, 25, 47, 0.06);
 }
 .sign-in-page input {
   width: 100%;
@@ -12,7 +12,7 @@
 }
 .sign-in-page input:focus {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
   border-color: #2563eb;
 }
 .sign-in-page button {
