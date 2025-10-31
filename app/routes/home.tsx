@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { Link } from "react-router";
 import "./home.css";
 
@@ -10,8 +11,21 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-	const signedIn =
-		typeof window !== "undefined" && localStorage.getItem("signedIn") === "true";
+	const { isSignedIn } = useUser() ?? { isSignedIn: false };
+	const signedIn = Boolean(isSignedIn);
+	const clerk = useClerk?.() ?? null;
+
+	async function handleSignOut() {
+		try {
+			await clerk?.signOut();
+		} catch {
+			// ignore
+		} finally {
+			if (typeof window !== "undefined") {
+				window.location.href = "/";
+			}
+		}
+	}
 
 	return (
 		<>
@@ -20,27 +34,6 @@ export default function Home() {
 				<div className="text-center py-4">
 					<h1 className="text-4xl font-bold text-gray-900">Welcome to JobApp</h1>
 					<p className="mt-2 text-gray-700">A simple job application tracker</p>
-					<div className="mt-6 flex justify-center gap-3">
-						{signedIn ? (
-							<>
-								<Link to="/job-form" className="px-4 py-2 bg-blue-600 text-white rounded">
-									Add Job
-								</Link>
-								<Link to="/job-dashboard" className="px-4 py-2 border rounded">
-									Dashboard
-								</Link>
-							</>
-						) : (
-							<>
-								<Link to="/sign-in" className="px-4 py-2 border rounded">
-									Sign In
-								</Link>
-								<Link to="/sign-up" className="px-4 py-2 bg-green-600 text-white rounded">
-									Sign Up
-								</Link>
-							</>
-						)}
-					</div>
 				</div>
 
 				{/* three centered boxes for the feature bullets */}
@@ -67,11 +60,6 @@ export default function Home() {
 					</div>
 				</div>
 			</section>
-			<div className="flex justify-center mt-6">
-				<Link to="/job-form" className="px-4 py-2 bg-blue-500 text-white rounded">
-					Go to Job Form
-				</Link>
-			</div>
 		</>
 	);
 }
