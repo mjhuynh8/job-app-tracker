@@ -23,7 +23,7 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between p-4">
         <div className="flex items-center gap-4">
           <Link to="/" className="font-semibold text-lg text-white">
-            JobApp
+            Home
           </Link>
         </div>
         <nav className="flex items-center gap-4">

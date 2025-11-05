@@ -35,7 +35,8 @@ export default function JobDashboard() {
                     </select>
                   </div>
                 </div>
-                <div className="text-sm mt-2">Skills: {j.skills.join(", ")}</div>
+                <div className="text-sm mt-2">Skills: {j.skills.length > 0 ? j.skills.join(", ") : "N/A"}</div>
+                <div className="text-sm mt-2">Notes: {j.notes || "None"}</div>
               </div>
             ))}
           </div>
