@@ -1,9 +1,17 @@
 [build]
-  command = "react-router build"
+  # Directory that contains the static site output produced by your build.
+  # Match this to whatever your build produces (adjust if your deploy folder differs).
   publish = "build/client"
 
-[functions]
-  directory = ".netlify/functions"
+  # Where Netlify should look for serverless functions
+  functions = "netlify/functions"
+
+[dev]
+  # Dev-time settings for netlify dev (optional but helpful)
+  publish = "build/client"
+  functions = "netlify/functions"
+  # If you use netlify dev and need a custom command uncomment and adjust:
+  # command = "npm run dev"
 
 [[redirects]]
   from = "/.netlify/functions/*"
