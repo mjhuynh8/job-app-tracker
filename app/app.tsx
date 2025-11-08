@@ -48,13 +48,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   console.log("App mounted")
-
   return (
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <JobProvider>
-        <Outlet />
-      </JobProvider>
-    </ClerkProvider>
+    <Outlet />
   );
 }
 
