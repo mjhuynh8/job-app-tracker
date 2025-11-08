@@ -8,17 +8,12 @@ export default function JobForm() {
 	const { jobs, addJob } = useJobs();
 
 	const [title, setTitle] = useState("");
-	// company -> employer
 	const [employer, setEmployer] = useState("");
 	const [skills, setSkills] = useState("");
 	const [status, setStatus] = useState<JobStatus | "">("");
-	// dateApplied stays as string input but will be converted to Date when submitted
 	const [dateApplied, setDateApplied] = useState("");
-	// notes -> description
+	// description — make this a textarea now
 	const [description, setDescription] = useState("");
-	// add booleans for rejected/ghosted to match schema
-	const [rejected, setRejected] = useState(false);
-	const [ghosted, setGhosted] = useState(false);
 	const [statusFilter, setStatusFilter] = useState<"" | JobStatus>(""); // "" means all
 
 	function submit(e: React.FormEvent) {
@@ -39,8 +34,6 @@ export default function JobForm() {
 				.filter(Boolean)
 				.join(", "),
 			description,
-			rejected,
-			ghosted,
 		});
 		// reset fields
 		setTitle("");
@@ -49,8 +42,6 @@ export default function JobForm() {
 		setDateApplied("");
 		setDescription("");
 		setStatus("");
-		setRejected(false);
-		setGhosted(false);
 	}
 
 	return (
@@ -61,8 +52,15 @@ export default function JobForm() {
 				{/* employer input (replaces company) */}
 				<input value={employer} onChange={(e) => setEmployer(e.target.value)} placeholder="Employer*" className="w-full p-2 border rounded" required/>
 				<input value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Skills (comma separated)" className="w-full p-2 border rounded" />
-				{/* description (replaces notes) */}
-				<input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full p-2 border rounded" />
+				{/* description (larger, resizable textarea) */}
+				<textarea
+					value={description}
+					onChange={(e) => setDescription(e.target.value)}
+					placeholder="Description"
+					rows={5}
+					className="w-full p-2 border rounded description-textarea"
+					aria-label="Job description"
+				/>
 				<input
 					type="text"
 					onFocus={(e) => (e.target.type = "date")}
@@ -79,14 +77,13 @@ export default function JobForm() {
 					<option value="Interview">Interview</option>
 					<option value="Offer">Offer</option>
 				</select>
-				{/* rejected / ghosted checkboxes (schema booleans) */}
-				<div className="flex gap-4 items-center">
-					<label className="text-sm"><input type="checkbox" checked={rejected} onChange={e => setRejected(e.target.checked)} /> Rejected</label>
-					<label className="text-sm"><input type="checkbox" checked={ghosted} onChange={e => setGhosted(e.target.checked)} /> Ghosted</label>
-				</div>
 				<button className="px-4 py-2 bg-blue-600 text-white rounded">Add Job</button>
 			</form>
-			<div className="mt-8">
+		
+		</div>
+	);
+}
+/*	<div className="mt-8">
 				<h2 className="text-xl mb-2">All Job Applications</h2>
 				<div className="mb-4 flex gap-2 items-center">
 					<label htmlFor="statusFilter" className="text-sm font-medium">Filter by status:</label>
@@ -127,7 +124,4 @@ export default function JobForm() {
 							))}
 					</ul>
 				)}
-			</div>
-		</div>
-	);
-}
+			</div> */
