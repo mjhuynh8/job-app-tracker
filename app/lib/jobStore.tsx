@@ -115,6 +115,7 @@ useEffect(() => {
 
 export function useJobs() {
   const v = useContext(ctx);
+  console.log("useJobs context value:", v);
   if (!v) throw new Error("Missing JobProvider");
   return v;
 }
