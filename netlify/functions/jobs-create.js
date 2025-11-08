@@ -1,5 +1,9 @@
 const { MongoClient } = require("mongodb");
-const { getAuth } = require("@clerk/clerk-sdk-node");
+const clerkSdk = require("@clerk/clerk-sdk-node");
+const getAuth = clerkSdk.getAuth ?? clerkSdk.default?.getAuth ?? clerkSdk;
+if (typeof getAuth !== "function") {
+  console.error("Clerk getAuth not found. clerkSdk keys:", Object.keys(clerkSdk || {}));
+}
 
 const client = new MongoClient(process.env.MONGODB_URI);
 let db;
@@ -12,12 +16,14 @@ async function connect() {
   return db;
 }
 
-module.exports.handler = async (event) => {
+exports.handler = async (event) => {
   try {
-    const { userId } = getAuth(event);
+    const authRes = typeof getAuth === "function" ? getAuth(event) : null;
+    const userId = authRes?.userId ?? authRes?.sub ?? null;
     if (!userId) return { statusCode: 401, body: "Unauthorized" };
 
     const body = JSON.parse(event.body || "{}");
+
     const job = {
       userId,
       job_title: body.job_title,
