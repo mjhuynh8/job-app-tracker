@@ -23,24 +23,15 @@ async function submit(e: React.FormEvent) {
   e.preventDefault();
 
   try {
-    // client-side validation
-    if (!title.trim()) {
-      alert("Job title is required.");
-      return;
-    }
-    if (!employer.trim()) {
-      alert("Employer is required.");
-      return;
-    }
+    // validation
+    if (!title.trim()) { alert("Job title is required."); return; }
+    if (!employer.trim()) { alert("Employer is required."); return; }
     if (!status || !["Pre-interview", "Interview", "Offer"].includes(status)) {
-      alert("Status must be one of: Pre-interview, Interview, Offer.");
-      return;
+      alert("Status must be one of: Pre-interview, Interview, Offer."); return;
     }
-    if (!dateApplied || !isValidDate(dateApplied)) {
-      alert("Date Applied must be a valid date.");
-      return;
-    }
+    if (!dateApplied || !isValidDate(dateApplied)) { alert("Date Applied must be a valid date."); return; }
 
+    // get Clerk token (getToken is from top-level useAuth)
     const token = await getToken();
     console.log("Got Clerk token:", !!token);
 
@@ -49,20 +40,13 @@ async function submit(e: React.FormEvent) {
       employer: employer.trim(),
       job_date: new Date(dateApplied).toISOString(),
       status,
-      skills: skills
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .join(", "),
+      skills: skills.split(",").map(s => s.trim()).filter(Boolean).join(", "),
       description: description.trim(),
     };
 
     const res = await fetch("/.netlify/functions/jobs-create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(jobData),
     });
 
@@ -70,21 +54,18 @@ async function submit(e: React.FormEvent) {
     console.log("jobs-create response status:", res.status, "body:", text);
 
     if (!res.ok) {
-      // surface server error text
       throw new Error(text || `Server returned ${res.status}`);
     }
 
-    // parse JSON (server should return JSON)
     const savedJob = JSON.parse(text);
 
-    // normalize server shape to your Job type:
-    // prefer 'id' if present, otherwise map MongoDB _id to id
-    const normalized: any = {
+    // normalize server shape to your Job type
+    const normalized = {
       id: savedJob.id ?? (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
       userid: savedJob.userId ?? savedJob.userId ?? undefined,
       job_title: savedJob.job_title,
       employer: savedJob.employer,
-      job_date: typeof savedJob.job_date === "string" ? savedJob.job_date : savedJob.job_date ? new Date(savedJob.job_date).toISOString() : undefined,
+      job_date: savedJob.job_date ? (typeof savedJob.job_date === "string" ? savedJob.job_date : new Date(savedJob.job_date).toISOString()) : undefined,
       status: savedJob.status,
       skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
       description: savedJob.description,
@@ -95,12 +76,7 @@ async function submit(e: React.FormEvent) {
     addJob(normalized);
 
     // reset form
-    setTitle("");
-    setEmployer("");
-    setSkills("");
-    setDateApplied("");
-    setDescription("");
-    setStatus("");
+    setTitle(""); setEmployer(""); setSkills(""); setDateApplied(""); setDescription(""); setStatus("");
   } catch (err) {
     console.error("submit error", err);
     alert("Failed to save job. See console for details.");
