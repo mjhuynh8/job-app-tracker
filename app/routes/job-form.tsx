@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-form.css";
+import { useAuth } from "@clerk/clerk-react";
 
 export default function JobForm() {
 	// Update status values to match DB enum
@@ -12,37 +13,74 @@ export default function JobForm() {
 	const [skills, setSkills] = useState("");
 	const [status, setStatus] = useState<JobStatus | "">("");
 	const [dateApplied, setDateApplied] = useState("");
-	// description — make this a textarea now
 	const [description, setDescription] = useState("");
-	const [statusFilter, setStatusFilter] = useState<"" | JobStatus>(""); // "" means all
 
-	function submit(e: React.FormEvent) {
-		e.preventDefault();
-		// Build job object matching DB schema
-		addJob({
-			// Replace "" with actual userid when available
-			userid: "",
-			job_title: title,
-			employer,
-			// convert to ISO string if provided; otherwise omit/undefined
-			job_date: dateApplied ? new Date(dateApplied).toISOString() : undefined,
-			status: status as JobStatus,
-			// schema expects skills as a string — store as comma separated string
-			skills: skills
-				.split(",")
-				.map((s) => s.trim())
-				.filter(Boolean)
-				.join(", "),
-			description,
-		});
-		// reset fields
-		setTitle("");
-		setEmployer("");
-		setSkills("");
-		setDateApplied("");
-		setDescription("");
-		setStatus("");
-	}
+function isValidDate(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+async function submit(e: React.FormEvent) {
+  e.preventDefault();
+
+  if (!title.trim()) {
+    alert("Job title is required.");
+    return;
+  }
+  if (!employer.trim()) {
+    alert("Employer is required.");
+    return;
+  }
+  if (!status || !["Pre-interview", "Interview", "Offer"].includes(status)) {
+    alert("Status must be one of: Pre-interview, Interview, Offer.");
+    return;
+  }
+  if (!dateApplied || !isValidDate(dateApplied)) {
+    alert("Date Applied must be a valid date.");
+    return;
+  }
+
+  const { getToken } = useAuth();
+  const token = await getToken();
+
+  const jobData = {
+    job_title: title.trim(),
+    employer: employer.trim(),
+    job_date: new Date(dateApplied).toISOString(),
+    status,
+    skills: skills
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", "),
+    description: description.trim(),
+  };
+
+  const res = await fetch("/.netlify/functions/jobs-create", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(jobData),
+  });
+
+  if (!res.ok) {
+    console.error("Failed to save job:", await res.text());
+    return;
+  }
+
+  const savedJob = await res.json();
+  addJob(savedJob);
+
+  // Reset form
+  setTitle("");
+  setEmployer("");
+  setSkills("");
+  setDateApplied("");
+  setDescription("");
+  setStatus("");
+}
 
 	return (
 		<div className="max-w-xl mx-auto job-form-page">
