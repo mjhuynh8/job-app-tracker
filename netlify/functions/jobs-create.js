@@ -21,7 +21,15 @@ async function connect() {
   if (!db) {
     try {
       await client.connect();
-      db = client.db("jobtracker");
+      // Respect explicit DB env var or default to "jobtracker"
+      const dbName = process.env.MONGODB_DB_NAME || "jobtracker";
+      db = client.db(dbName);
+      console.log("jobs-create: connected to MongoDB, using database:", db.databaseName);
+      // defensive: if somehow we landed in "local", switch to intended DB
+      if (db.databaseName === "local") {
+        console.warn("jobs-create: connected DB is 'local' — forcing configured DB name:", dbName);
+        db = client.db(dbName);
+      }
     } catch (connectErr) {
       console.error("jobs-create: MongoDB connect() failed:", connectErr);
       // Re-throw to be handled by the caller so we return a helpful response
@@ -258,7 +266,10 @@ exports.handler = async function (event, context) {
       }
 
       const database = await connect();
+      // Log what database/collection we will write to (helps diagnose 'local.oplog.rs' issues)
+      console.log("jobs-create: database before insert:", database.databaseName);
       const coll = database.collection("jobs");
+      console.log("jobs-create: target collection namespace:", `${database.databaseName}.${coll.collectionName}`);
       const insertRes = await coll.insertOne(docToInsert);
       // Build the saved object to return to the client (includes insertedId)
       const saved = {
@@ -276,7 +287,7 @@ exports.handler = async function (event, context) {
         ghosted: docToInsert.ghosted,
         createdAt: docToInsert.createdAt.toISOString(),
       };
-      console.log("jobs-create: inserted job id:", saved.id);
+      console.log("jobs-create: inserted job id:", saved.id, "namespace:", `${database.databaseName}.${coll.collectionName}`);
     } catch (dbErr) {
       console.error("jobs-create: MongoDB operation failed:", dbErr);
       // If connect() timed out or server selection failed, surface a 502 with actionable hint.
