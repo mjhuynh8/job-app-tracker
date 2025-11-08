@@ -2,6 +2,9 @@
   command = "react-router build"
   publish = "build/client"
 
+[functions]
+  directory = ".netlify/functions"
+
 [[redirects]]
   from = "/.netlify/functions/*"
   to = "/.netlify/functions/:splat"
