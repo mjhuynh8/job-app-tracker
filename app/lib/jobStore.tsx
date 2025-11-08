@@ -22,6 +22,7 @@ type JobContext = {
 const ctx = createContext<JobContext | null>(null);
 
 export function JobProvider({ children }: { children: any }) {
+  console.log("JobProvider mounted");
   const [jobs, setJobs] = useState<Job[]>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];

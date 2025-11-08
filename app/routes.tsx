@@ -25,7 +25,7 @@ export function LinksFn() {
 }
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
-  console.log("Layout mounted — ClerkProvider and JobProvider should wrap Outlet");
+console.log("Routes layout mounted");
   return (
     <html lang="en">
       <head>
