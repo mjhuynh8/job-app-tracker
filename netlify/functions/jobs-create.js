@@ -197,7 +197,40 @@ exports.handler = async function (event, context) {
       ghosted: false,
     };
 
-    // If you'd like to persist in MongoDB, connect() is available above; omitted for brevity.
+    // Persist to MongoDB if MONGODB_URI is configured.
+    // If you are running on Netlify make sure MONGODB_URI is set in Site > Build & deploy > Environment.
+    try {
+      if (!process.env.MONGODB_URI) {
+        console.warn("jobs-create: MONGODB_URI not set; skipping DB persist");
+        // Return 500 so this is loud in production; adjust if you'd prefer to accept without DB.
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: "Server misconfiguration",
+            hint: "MONGODB_URI is not configured in environment variables.",
+          }),
+        };
+      }
+
+      const database = await connect();
+      const coll = database.collection("jobs");
+      const insertRes = await coll.insertOne({
+        ...saved,
+        createdAt: new Date(),
+      });
+      // attach Mongo's _id to returned object for debugging/consistency
+      saved._id = insertRes.insertedId;
+      console.log("jobs-create: inserted job id:", insertRes.insertedId?.toString?.() ?? insertRes.insertedId);
+    } catch (dbErr) {
+      console.error("jobs-create: MongoDB insert failed:", dbErr);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: "Failed to persist job", detail: String(dbErr) }),
+      };
+    }
+
     return {
       statusCode: 200,
       headers,
