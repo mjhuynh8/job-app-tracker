@@ -43,13 +43,19 @@ export function JobProvider({ children }: { children: any }) {
     }
   });
 
-  useEffect(() => {
+useEffect(() => {
+  if (typeof window !== "undefined") {
     const toStore = jobs.map(j => ({
       ...j,
-      job_date: j.job_date ? (typeof j.job_date === "string" ? j.job_date : new Date(j.job_date).toISOString()) : undefined,
+      job_date: j.job_date
+        ? typeof j.job_date === "string"
+          ? j.job_date
+          : new Date(j.job_date).toISOString()
+        : undefined,
     }));
     localStorage.setItem("jobs", JSON.stringify(toStore));
-  }, [jobs]);
+  }
+}, [jobs]);
 
   function toISO(d: any): string | undefined {
     if (!d) return undefined;
