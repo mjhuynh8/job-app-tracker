@@ -5,13 +5,28 @@ if (typeof getAuth !== "function") {
   console.error("Clerk getAuth not found. clerkSdk keys:", Object.keys(clerkSdk || {}));
 }
 
-const client = new MongoClient(process.env.MONGODB_URI);
+// Use short server selection/connect timeouts so the function fails fast instead of hanging.
+// Adjust numbers if you need a longer window, but keep them small for serverless.
+const client = new MongoClient(process.env.MONGODB_URI, {
+  // how long to wait to find a suitable server (ms)
+  serverSelectionTimeoutMS: 5000,
+  // how long to wait for socket inactivity (ms)
+  socketTimeoutMS: 45000,
+  // how long to wait for initial TCP connection (ms)
+  connectTimeoutMS: 5000,
+});
 let db;
 
 async function connect() {
   if (!db) {
-    await client.connect();
-    db = client.db("jobtracker");
+    try {
+      await client.connect();
+      db = client.db("jobtracker");
+    } catch (connectErr) {
+      console.error("jobs-create: MongoDB connect() failed:", connectErr);
+      // Re-throw to be handled by the caller so we return a helpful response
+      throw connectErr;
+    }
   }
   return db;
 }
@@ -223,7 +238,22 @@ exports.handler = async function (event, context) {
       saved._id = insertRes.insertedId;
       console.log("jobs-create: inserted job id:", insertRes.insertedId?.toString?.() ?? insertRes.insertedId);
     } catch (dbErr) {
-      console.error("jobs-create: MongoDB insert failed:", dbErr);
+      console.error("jobs-create: MongoDB operation failed:", dbErr);
+      // If connect() timed out or server selection failed, surface a 502 with actionable hint.
+      const msg = String(dbErr || "");
+      if (msg.includes("timed out") || msg.includes("failed to connect") || dbErr.name === "MongoServerSelectionError") {
+        return {
+          statusCode: 502,
+          headers,
+          body: JSON.stringify({
+            error: "Bad Gateway",
+            hint:
+              "Unable to reach MongoDB within the configured timeout. Check MONGODB_URI, Atlas/network IP access, and that your DB allows connections from Netlify.",
+            detail: String(dbErr.message || dbErr),
+          }),
+        };
+      }
+
       return {
         statusCode: 500,
         headers,

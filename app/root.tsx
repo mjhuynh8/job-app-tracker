@@ -10,10 +10,6 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import "./styles/global.css";
-import { JobProvider } from "./lib/jobStore";
-import { ClerkProvider } from "@clerk/clerk-react";
-
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
