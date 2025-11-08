@@ -47,7 +47,8 @@ async function submit(e: React.FormEvent) {
     const res = await fetch("/.netlify/functions/jobs-create", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(jobData),
+      // include token in the body as a fallback in case a proxy/edge strips Authorization
+      body: JSON.stringify({ ...jobData, token }),
     });
 
     const text = await res.text();

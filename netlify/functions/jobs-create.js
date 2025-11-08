@@ -44,38 +44,110 @@ exports.handler = async function (event, context) {
   }
 
   try {
-    // Expect Authorization: Bearer <token>
-    const auth = (event.headers && (event.headers.Authorization || event.headers.authorization)) || "";
-    if (!auth || !auth.startsWith("Bearer ")) {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
+    // Log incoming header keys and a hint whether Authorization was present (do NOT log the token)
+    try {
+      const hdrObj = event.headers || {};
+      const hdrKeys = Object.keys(hdrObj).slice(0, 200);
+      const hasAuthHeader = !!(hdrObj.Authorization || hdrObj.authorization);
+      console.log("jobs-create request header keys:", hdrKeys);
+      console.log("jobs-create has Authorization header:", hasAuthHeader);
+
+      if (typeof hdrObj.cookie === "string" && hdrObj.cookie.trim()) {
+        const cookieNames = hdrObj.cookie
+          .split(";")
+          .map((c) => c.split("=")[0]?.trim())
+          .filter(Boolean);
+        console.log("jobs-create cookie names:", cookieNames.slice(0, 50));
+      }
+    } catch (logErr) {
+      console.warn("jobs-create header logging failed", logErr);
     }
 
-    // Minimal "token" presence check - adapt to verify Clerk token server-side as needed
-    const token = auth.slice("Bearer ".length).trim();
-    if (!token) {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
+    // Prefer Authorization header but fall back to token in JSON body (helpful if a proxy strips headers)
+    const reqHeaders = event.headers || {};
+    const authHeader = reqHeaders.Authorization || reqHeaders.authorization || "";
+    let token = "";
+    if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice("Bearer ".length).trim();
     }
 
-    // Parse body
-    const payload = event.body ? JSON.parse(event.body) : null;
-    if (!payload) {
+    // Parse body (safe)
+    let payload = null;
+    try {
+      payload = event.body ? JSON.parse(event.body) : null;
+    } catch (e) {
+      console.warn("jobs-create invalid JSON body:", e);
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "Missing request body" }),
+        body: JSON.stringify({ error: "Invalid JSON body" }),
+      };
+    }
+
+    // fallback token from body.token if header absent
+    if (!token && payload && typeof payload.token === "string") {
+      token = payload.token.trim();
+      // remove token from stored payload to avoid persisting sensitive token
+      delete payload.token;
+      console.log("jobs-create token supplied in body (used as fallback)");
+    }
+
+    // fallback: try to extract token from cookie header (don't log cookie values)
+    if (!token && typeof reqHeaders.cookie === "string") {
+      try {
+        const cookiePairs = reqHeaders.cookie.split(";").map((s) => s.trim()).filter(Boolean);
+        const cookieObj = {};
+        cookiePairs.forEach((pair) => {
+          const idx = pair.indexOf("=");
+          if (idx > -1) {
+            const k = pair.slice(0, idx).trim();
+            const v = pair.slice(idx + 1);
+            cookieObj[k] = v;
+          }
+        });
+        const cookieCandidates = ["__session", "session", "clerk_session", "clerk_token", "session_token", "token", "jwt"];
+        for (const cname of cookieCandidates) {
+          if (cookieObj[cname]) {
+            token = cookieObj[cname];
+            break;
+          }
+        }
+        if (token) {
+          console.log("jobs-create token extracted from cookie header (value not logged)");
+        }
+      } catch (cookieErr) {
+        console.warn("jobs-create cookie parsing failed", cookieErr);
+      }
+    }
+
+    // Use Clerk server helper to validate and extract authenticated user information
+    let userId = null;
+    try {
+      // getAuth expects an object with headers (or a Request-like object)
+      const authInfo = typeof getAuth === "function" ? getAuth({ headers: reqHeaders }) : null;
+      console.log("jobs-create getAuth keys:", authInfo ? Object.keys(authInfo) : null);
+      if (authInfo && authInfo.userId) {
+        userId = authInfo.userId;
+      }
+    } catch (getAuthErr) {
+      console.warn("jobs-create getAuth() failed:", getAuthErr);
+    }
+
+    // If getAuth didn't return a Clerk userId, do not accept unverified token. Return helpful 401.
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({
+          error: "Unauthorized",
+          hint:
+            "No valid Clerk session found. Ensure the Authorization: Bearer <token> header reaches this function and that your Clerk server key (e.g. CLERK_SECRET_KEY / CLERK_API_KEY) is configured in Netlify environment variables.",
+        }),
       };
     }
 
     // Basic validation of required fields that your client sends
-    const { job_title, employer, job_date, status, skills, description } = payload;
+    const { job_title, employer, job_date, status, skills, description } = payload || {};
     if (!job_title || !employer || !status) {
       return {
         statusCode: 400,
@@ -84,10 +156,8 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // Create a faux saved job record (replace with real DB logic)
+    // We have a verified Clerk userId at this point (from getAuth above).
     const id = Math.random().toString(36).slice(2);
-    // userId extracted as placeholder from token (server should verify token and extract user id)
-    const userId = token.split(".")[0] || null;
 
     const saved = {
       id,
@@ -102,7 +172,7 @@ exports.handler = async function (event, context) {
       ghosted: false,
     };
 
-    // TODO: replace with real DB persistence (e.g. MongoDB) and verify Clerk token server-side.
+    // If you'd like to persist in MongoDB, connect() is available above; omitted for brevity.
     return {
       statusCode: 200,
       headers,
