@@ -14,13 +14,21 @@ export default function JobDashboard() {
         <section key={s} className="border rounded p-2 flex flex-col">
           <header className="flex items-center justify-between">
             <h2 className="font-semibold">{s}</h2>
-            <button onClick={() => setOpen((o) => ({ ...o, [s]: !o[s] }))} aria-label="toggle">
+            <button
+              onClick={() => setOpen((o) => ({ ...o, [s]: !o[s] }))}
+              aria-label="toggle"
+            >
               {open[s] ? "▾" : "▸"}
             </button>
           </header>
           <div className="mt-2 overflow-auto" style={{ maxHeight: 300 }}>
             {jobs
-              .filter((j) => (s === "Rejected" ? !!j.rejected : j.status === s))
+              // If we're rendering the "Rejected" column show jobs with `rejected === true`.
+              // For the status columns, exclude any job that is marked rejected so a
+              // rejected job doesn't also appear in its previous status column.
+              .filter((j) =>
+                s === "Rejected" ? !!j.rejected : !j.rejected && j.status === s
+              )
               .map((j) => {
                 const skills = j.skills || "";
                 return (
@@ -28,7 +36,9 @@ export default function JobDashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold">{j.job_title}</div>
-                        <div className="text-sm text-gray-600">{j.employer}</div>
+                        <div className="text-sm text-gray-600">
+                          {j.employer}
+                        </div>
                       </div>
                       <div>
                         <select
@@ -38,7 +48,10 @@ export default function JobDashboard() {
                             if (v === "Rejected") {
                               updateJob(j.id, { rejected: true });
                             } else {
-                              updateJob(j.id, { status: v as any, rejected: false });
+                              updateJob(j.id, {
+                                status: v as any,
+                                rejected: false,
+                              });
                             }
                           }}
                           className="p-1 border rounded"
@@ -50,9 +63,18 @@ export default function JobDashboard() {
                         </select>
                       </div>
                     </div>
-                    <div className="text-sm mt-2">Skills: {skills || "N/A"}</div>
-                    <div className="text-sm mt-2">Description: {j.description ?? "None"}</div>
-                    <div className="text-sm mt-2">Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}</div>
+                    <div className="text-sm mt-2">
+                      Skills: {skills || "N/A"}
+                    </div>
+                    <div className="text-sm mt-2">
+                      Description: {j.description ?? "None"}
+                    </div>
+                    <div className="text-sm mt-2">
+                      Date:{" "}
+                      {j.job_date
+                        ? new Date(j.job_date).toLocaleDateString()
+                        : "N/A"}
+                    </div>
                   </div>
                 );
               })}

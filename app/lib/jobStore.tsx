@@ -54,13 +54,14 @@ export function JobProvider({ children }: { children: any }) {
           typeof j.job_date === "string"
             ? j.job_date
             : j.job_date
-            ? new Date(j.job_date).toISOString()
-            : undefined,
+              ? new Date(j.job_date).toISOString()
+              : undefined,
         status: (["Pre-interview", "Interview", "Offer"].includes(j.status)
           ? j.status
           : "Pre-interview") as Job["status"],
         skills: typeof j.skills === "string" ? j.skills : "",
-        description: typeof j.description === "string" ? j.description : undefined,
+        description:
+          typeof j.description === "string" ? j.description : undefined,
         rejected: !!j.rejected,
         ghosted: !!j.ghosted,
       }));
@@ -93,7 +94,9 @@ export function JobProvider({ children }: { children: any }) {
       job_title: j.job_title,
       employer: j.employer,
       job_date: toISO(j.job_date),
-      status: ["Pre-interview", "Interview", "Offer"].includes(j.status) ? j.status : "Pre-interview",
+      status: ["Pre-interview", "Interview", "Offer"].includes(j.status)
+        ? j.status
+        : "Pre-interview",
       skills: typeof j.skills === "string" ? j.skills : "",
       description: j.description,
       rejected: !!j.rejected,
@@ -111,9 +114,13 @@ export function JobProvider({ children }: { children: any }) {
           ...patch,
           job_date: toISO(patch.job_date) ?? jj.job_date,
           skills: typeof patch.skills === "string" ? patch.skills : jj.skills,
-          status: patch.status && ["Pre-interview", "Interview", "Offer"].includes(String(patch.status))
-            ? (patch.status as Job["status"])
-            : jj.status,
+          status:
+            patch.status &&
+            ["Pre-interview", "Interview", "Offer"].includes(
+              String(patch.status)
+            )
+              ? (patch.status as Job["status"])
+              : jj.status,
           rejected: patch.rejected ?? jj.rejected,
           ghosted: patch.ghosted ?? jj.ghosted,
         };
@@ -122,7 +129,9 @@ export function JobProvider({ children }: { children: any }) {
     );
   }
 
-  return <ctx.Provider value={{ jobs, addJob, updateJob }}>{children}</ctx.Provider>;
+  return (
+    <ctx.Provider value={{ jobs, addJob, updateJob }}>{children}</ctx.Provider>
+  );
 }
 
 export function useJobs() {
