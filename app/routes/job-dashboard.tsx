@@ -5,8 +5,10 @@ import "./job-dashboard.css";
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 
 export default function JobDashboard() {
-  const { jobs, updateJob } = useJobs();
+  const { jobs, updateJob, deleteJob } = useJobs();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  // per-job description open/closed state
+  const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
@@ -21,7 +23,7 @@ export default function JobDashboard() {
               {open[s] ? "▾" : "▸"}
             </button>
           </header>
-          <div className="mt-2 overflow-auto" style={{ maxHeight: 300 }}>
+          <div className="mt-2 tiles overflow-auto">
             {jobs
               // If we're rendering the "Rejected" column show jobs with `rejected === true`.
               // For the status columns, exclude any job that is marked rejected so a
@@ -31,16 +33,21 @@ export default function JobDashboard() {
               )
               .map((j) => {
                 const skills = j.skills || "";
+                const fullDesc = j.description ?? "";
+                const needsToggle = fullDesc.length > 120;
+                const isOpen = !!descOpen[j.id];
+                const preview =
+                  needsToggle && !isOpen ? fullDesc.slice(0, 120) + "…" : fullDesc;
                 return (
                   <div key={j.id} className="p-2 border-b">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold">{j.job_title}</div>
-                        <div className="text-sm text-gray-600">
-                          {j.employer}
-                        </div>
+                        <div className="text-sm text-gray-600">{j.employer}</div>
                       </div>
-                      <div>
+
+                      {/* status dropdown + delete button */}
+                      <div className="flex items-center gap-2">
                         <select
                           value={j.rejected ? "Rejected" : j.status}
                           onChange={(e) => {
@@ -48,10 +55,7 @@ export default function JobDashboard() {
                             if (v === "Rejected") {
                               updateJob(j.id, { rejected: true });
                             } else {
-                              updateJob(j.id, {
-                                status: v as any,
-                                rejected: false,
-                              });
+                              updateJob(j.id, { status: v as any, rejected: false });
                             }
                           }}
                           className="p-1 border rounded"
@@ -61,19 +65,65 @@ export default function JobDashboard() {
                           <option value="Offer">Offer</option>
                           <option value="Rejected">Rejected</option>
                         </select>
+
+                        <button
+                          title="Delete job"
+                          onClick={() => {
+                            if (confirm(`Delete "${j.job_title}" at ${j.employer}?`)) {
+                              deleteJob(j.id);
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-sm mt-2">Skills: {skills || "N/A"}</div>
+                    <div className="text-sm mt-2">
+                      Description:
+                      {/* description preview + toggle */}
+                      <div className="job-description-container">
+                        <div className="job-description-text">{preview}</div>
+                        {needsToggle && (
+                          <button
+                            className="job-description-toggle"
+                            aria-expanded={isOpen}
+                            aria-controls={`desc-${j.id}`}
+                            onClick={() =>
+                              setDescOpen((m) => ({ ...m, [j.id]: !m[j.id] }))
+                            }
+                          >
+                            {isOpen ? "▾" : "▸"}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="text-sm mt-2">
-                      Skills: {skills || "N/A"}
-                    </div>
-                    <div className="text-sm mt-2">
-                      Description: {j.description ?? "None"}
-                    </div>
-                    <div className="text-sm mt-2">
                       Date:{" "}
-                      {j.job_date
-                        ? new Date(j.job_date).toLocaleDateString()
-                        : "N/A"}
+                      {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                    </div>
+
+                    {/* Rejected / Ghosted checkboxes under the date */}
+                    <div className="flex items-center gap-4 mt-2 text-sm">
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!!j.rejected}
+                          onChange={(e) => updateJob(j.id, { rejected: e.target.checked })}
+                        />
+                        <span>Rejected</span>
+                      </label>
+
+                      <label className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!!j.ghosted}
+                          onChange={(e) => updateJob(j.id, { ghosted: e.target.checked })}
+                        />
+                        <span>Ghosted</span>
+                      </label>
                     </div>
                   </div>
                 );

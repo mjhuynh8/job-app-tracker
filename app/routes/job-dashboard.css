@@ -16,3 +16,51 @@
 .job-dashboard h2 {
   color: #0b2545;
 }
+.job-description-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.job-description-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+.job-description-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 14px;
+  color: #4b5563; /* slate-600 */
+}
+:root {
+  /* Adjust this to change the assumed tile height used to compute the 5-tile column height */
+  --job-tile-height: 72px;
+}
+
+/* tiles container: shows approximately 5 job tiles tall, scrolls when needed */
+.job-dashboard .tiles {
+  max-height: calc(var(--job-tile-height) * 8);
+  overflow-y: auto;
+  /* keep horizontal layout stable */
+  overflow-x: hidden;
+  padding-right: 4px; /* avoids scrollbar overlapping content on some browsers */
+}
+
+/* Ensure each tile has a reasonable minimum height to align with the tile-height assumption */
+.job-dashboard .tiles > div > .p-2 {
+  min-height: var(--job-tile-height);
+}
+
+/* Optional: thin scrollbar styling for modern browsers */
+.job-dashboard .tiles::-webkit-scrollbar {
+  width: 10px;
+}
+.job-dashboard .tiles::-webkit-scrollbar-thumb {
+  background: rgba(99,102,241,0.2);
+  border-radius: 8px;
+}
+.job-dashboard .tiles::-webkit-scrollbar-track {
+  background: transparent;
+}

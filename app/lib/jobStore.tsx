@@ -17,6 +17,7 @@ type JobContext = {
   jobs: Job[];
   addJob: (j: Omit<Job, "id">) => void;
   updateJob: (id: string, patch: Partial<Job>) => void;
+  deleteJob: (id: string) => void;
 };
 
 const ctx = createContext<JobContext | null>(null);
@@ -129,8 +130,15 @@ export function JobProvider({ children }: { children: any }) {
     );
   }
 
+  // Remove a job by id and persist via the existing jobs effect
+  function deleteJob(id: string) {
+    setJobs((s) => s.filter((j) => j.id !== id));
+  }
+
   return (
-    <ctx.Provider value={{ jobs, addJob, updateJob }}>{children}</ctx.Provider>
+    <ctx.Provider value={{ jobs, addJob, updateJob, deleteJob }}>
+      {children}
+    </ctx.Provider>
   );
 }
 
