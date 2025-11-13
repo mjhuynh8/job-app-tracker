@@ -32,7 +32,7 @@
   cursor: pointer;
   padding: 0 6px;
   font-size: 14px;
-  color: #4b5563; /* slate-600 */
+  color: #949494; /* slate-600 */
 }
 :root {
   /* Adjust this to change the assumed tile height used to compute the 5-tile column height */
@@ -53,14 +53,35 @@
   min-height: var(--job-tile-height);
 }
 
+/* container that animates its height on collapse/expand */
+.job-dashboard .tiles-container {
+  overflow: hidden;
+  transition: max-height 260ms cubic-bezier(.2,.9,.2,1);
+  /* default collapsed; JS will set inline maxHeight to expand a given column */
+  max-height: 0;
+}
+
+/* inner scroll area that provides the scrollbar when expanded */
+.job-dashboard .tiles-container .tiles-scroll {
+  max-height: calc(var(--job-tile-height) * 5);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px; /* avoid overlap with scrollbar */
+}
+
+/* ensure each tile has reasonable minimum height */
+.job-dashboard .tiles-container .p-2 {
+  min-height: var(--job-tile-height);
+}
+
 /* Optional: thin scrollbar styling for modern browsers */
-.job-dashboard .tiles::-webkit-scrollbar {
+.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar {
   width: 10px;
 }
-.job-dashboard .tiles::-webkit-scrollbar-thumb {
-  background: rgba(99,102,241,0.2);
+.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar-thumb {
+  background: rgba(25, 27, 124, 0.2);
   border-radius: 8px;
 }
-.job-dashboard .tiles::-webkit-scrollbar-track {
+.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar-track {
   background: transparent;
 }

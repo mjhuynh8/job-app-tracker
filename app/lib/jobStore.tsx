@@ -125,6 +125,10 @@ export function JobProvider({ children }: { children: any }) {
           rejected: patch.rejected ?? jj.rejected,
           ghosted: patch.ghosted ?? jj.ghosted,
         };
+        // If job is being marked as ghosted, also mark it as rejected
+        if (patch.ghosted === true) {
+          merged.rejected = true;
+        }
         return merged;
       })
     );

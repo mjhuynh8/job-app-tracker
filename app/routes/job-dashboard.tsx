@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 
@@ -6,9 +6,27 @@ const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 
 export default function JobDashboard() {
   const { jobs, updateJob, deleteJob } = useJobs();
-  const [open, setOpen] = useState<Record<string, boolean>>({});
-  // per-job description open/closed state
+  const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [open, setOpen] = useState<Record<string, boolean>>(
+    () => statuses.reduce((acc, s) => ({ ...acc, [s]: true }), {} as Record<string, boolean>)
+  );
   const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
+
+  // Update only the toggled column's maxHeight
+  useEffect(() => {
+    statuses.forEach((status) => {
+      const el = containerRefs.current[status];
+      if (!el) return;
+
+      if (open[status]) {
+        // Expand the column
+        el.style.maxHeight = `${el.scrollHeight}px`;
+      } else {
+        // Collapse the column
+        el.style.maxHeight = "0px";
+      }
+    });
+  }, [open, jobs]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
@@ -18,116 +36,113 @@ export default function JobDashboard() {
             <h2 className="font-semibold">{s}</h2>
             <button
               onClick={() => setOpen((o) => ({ ...o, [s]: !o[s] }))}
-              aria-label="toggle"
+              aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
+              aria-expanded={!!open[s]}
+              title={open[s] ? "Collapse" : "Expand"}
             >
               {open[s] ? "▾" : "▸"}
             </button>
           </header>
-          <div className="mt-2 tiles overflow-auto">
-            {jobs
-              // If we're rendering the "Rejected" column show jobs with `rejected === true`.
-              // For the status columns, exclude any job that is marked rejected so a
-              // rejected job doesn't also appear in its previous status column.
-              .filter((j) =>
-                s === "Rejected" ? !!j.rejected : !j.rejected && j.status === s
-              )
-              .map((j) => {
-                const skills = j.skills || "";
-                const fullDesc = j.description ?? "";
-                const needsToggle = fullDesc.length > 120;
-                const isOpen = !!descOpen[j.id];
-                const preview =
-                  needsToggle && !isOpen ? fullDesc.slice(0, 120) + "…" : fullDesc;
-                return (
-                  <div key={j.id} className="p-2 border-b">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{j.job_title}</div>
-                        <div className="text-sm text-gray-600">{j.employer}</div>
-                      </div>
-
-                      {/* status dropdown + delete button */}
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={j.rejected ? "Rejected" : j.status}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === "Rejected") {
-                              updateJob(j.id, { rejected: true });
-                            } else {
-                              updateJob(j.id, { status: v as any, rejected: false });
-                            }
-                          }}
-                          className="p-1 border rounded"
-                        >
-                          <option value="Pre-interview">Pre-interview</option>
-                          <option value="Interview">Interview</option>
-                          <option value="Offer">Offer</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
-
-                        <button
-                          title="Delete job"
-                          onClick={() => {
-                            if (confirm(`Delete "${j.job_title}" at ${j.employer}?`)) {
-                              deleteJob(j.id);
-                            }
-                          }}
-                          className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="text-sm mt-2">Skills: {skills || "N/A"}</div>
-                    <div className="text-sm mt-2">
-                      Description:
-                      {/* description preview + toggle */}
-                      <div className="job-description-container">
-                        <div className="job-description-text">{preview}</div>
-                        {needsToggle && (
-                          <button
-                            className="job-description-toggle"
-                            aria-expanded={isOpen}
-                            aria-controls={`desc-${j.id}`}
-                            onClick={() =>
-                              setDescOpen((m) => ({ ...m, [j.id]: !m[j.id] }))
-                            }
+          <div
+            className="mt-2 tiles-container"
+            ref={(el) => (containerRefs.current[s] = el)}
+            aria-hidden={!open[s]}
+          >
+            <div className="tiles-scroll" role="region" aria-labelledby={`col-${s}`}>
+              {jobs
+                .filter((j) =>
+                  s === "Rejected" ? !!j.rejected : !j.rejected && j.status === s
+                )
+                .map((j) => {
+                  const skills = j.skills || "";
+                  const fullDesc = j.description ?? "";
+                  const needsToggle = fullDesc.length > 120;
+                  const isOpen = !!descOpen[j.id];
+                  const preview =
+                    needsToggle && !isOpen ? fullDesc.slice(0, 120) + "…" : fullDesc;
+                  return (
+                    <div key={j.id} className="p-2 border-b">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold">{j.job_title}</div>
+                          <div className="text-sm text-gray-600">{j.employer}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={j.rejected ? "Rejected" : j.status}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === "Rejected") {
+                                updateJob(j.id, { rejected: true });
+                              } else {
+                                updateJob(j.id, { status: v as any, rejected: false });
+                              }
+                            }}
+                            className="p-1 border rounded"
                           >
-                            {isOpen ? "▾" : "▸"}
+                            <option value="Pre-interview">Pre-interview</option>
+                            <option value="Interview">Interview</option>
+                            <option value="Offer">Offer</option>
+                            <option value="Rejected">Rejected</option>
+                          </select>
+                          <button
+                            title="Delete job"
+                            onClick={() => {
+                              if (confirm(`Delete "${j.job_title}" at ${j.employer}?`)) {
+                                deleteJob(j.id);
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
+                          >
+                            🗑
                           </button>
-                        )}
+                        </div>
+                      </div>
+                      <div className="text-sm mt-2">Skills: {skills || "N/A"}</div>
+                      <div className="text-sm mt-2">
+                        Description:
+                        <div className="job-description-container">
+                          <div className="job-description-text">{preview}</div>
+                          {needsToggle && (
+                            <button
+                              className="job-description-toggle"
+                              aria-expanded={isOpen}
+                              aria-controls={`desc-${j.id}`}
+                              onClick={() =>
+                                setDescOpen((m) => ({ ...m, [j.id]: !m[j.id] }))
+                              }
+                            >
+                              {isOpen ? "▾" : "▸"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm mt-2">
+                        Date:{" "}
+                        {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!j.rejected}
+                            onChange={(e) => updateJob(j.id, { rejected: e.target.checked })}
+                          />
+                          <span>Rejected</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!j.ghosted}
+                            onChange={(e) => updateJob(j.id, { ghosted: e.target.checked })}
+                          />
+                          <span>Ghosted</span>
+                        </label>
                       </div>
                     </div>
-                    <div className="text-sm mt-2">
-                      Date:{" "}
-                      {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
-                    </div>
-
-                    {/* Rejected / Ghosted checkboxes under the date */}
-                    <div className="flex items-center gap-4 mt-2 text-sm">
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!j.rejected}
-                          onChange={(e) => updateJob(j.id, { rejected: e.target.checked })}
-                        />
-                        <span>Rejected</span>
-                      </label>
-
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!j.ghosted}
-                          onChange={(e) => updateJob(j.id, { ghosted: e.target.checked })}
-                        />
-                        <span>Ghosted</span>
-                      </label>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+            </div>
           </div>
         </section>
       ))}
