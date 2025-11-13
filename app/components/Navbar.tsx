@@ -1,3 +1,5 @@
+"use client";
+
 import { Link } from "react-router";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import "./navbar.css";
@@ -27,8 +29,6 @@ export function Navbar() {
           </Link>
         </div>
         <nav className="flex items-center gap-4">
-
-          {/* show Job Form & Dashboard only when signed in */}
           {isSignedIn && (
             <>
               <Link to="/job-form" className="hover:underline text-white">
@@ -39,7 +39,6 @@ export function Navbar() {
               </Link>
             </>
           )}
-
           {isSignedIn ? (
             <button
               onClick={handleSignOut}

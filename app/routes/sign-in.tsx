@@ -1,3 +1,5 @@
+"use client";
+
 import { SignIn as ClerkSignIn } from "@clerk/clerk-react";
 import "./sign-in.css";
 

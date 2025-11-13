@@ -1,3 +1,5 @@
+"use client";
+
 import { SignUp as ClerkSignUp } from "@clerk/clerk-react";
 import "./sign-up.css";
 

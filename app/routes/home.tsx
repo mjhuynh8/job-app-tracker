@@ -1,3 +1,5 @@
+"use client";
+
 import type { Route } from "./+types/home";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { Link } from "react-router";
@@ -54,9 +56,11 @@ export default function Home() {
               </h1>
 
               <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-xl">
-                A visual job application tracker with stages for <span className="font-medium">Applied</span>,{" "}
+                A visual job application tracker with stages for{" "}
+                <span className="font-medium">Applied</span>,{" "}
                 <span className="font-medium">Interviewing</span>, and{" "}
-                <span className="font-medium">Offer</span>, plus analytics to track progress through your job finding journey.
+                <span className="font-medium">Offer</span>, plus analytics to
+                track progress through your job finding journey.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -110,14 +114,13 @@ export default function Home() {
             {/* Right: hero illustration */}
             <div className="relative">
               <div className="absolute -inset-4 -z-10 rounded-3xl bg-emerald-100/50 blur-2xl" aria-hidden="true" />
-				<img
-				src={HERO_IMG}
-				alt="Job application tracker dashboard with stages and analytics"
-				className="w-full max-w-[680px] mx-auto rounded-3xl mix-blend-multiply"
-				loading="eager"
-				decoding="async"
-				/>
-
+              <img
+                src={HERO_IMG}
+                alt="Job application tracker dashboard with stages and analytics"
+                className="w-full max-w-[680px] mx-auto rounded-3xl mix-blend-multiply"
+                loading="eager"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -126,9 +129,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900">Track Applications</h3>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Track Applications
+              </h3>
               <p className="mt-2 text-slate-600 text-sm">
-                Stages for Applied, Interviewing, and Offer to track application status.
+                Stages for Applied, Interviewing, and Offer to track application
+                status.
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">

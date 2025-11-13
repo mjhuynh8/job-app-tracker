@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-form.css";
