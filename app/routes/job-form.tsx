@@ -138,66 +138,76 @@ export default function JobForm() {
     }
   }
   return (
-    <div className="max-w-xl mx-auto job-form-page">
-      <h1 className="text-2xl mb-4">Add Job</h1>
-      <form onSubmit={submit} className="space-y-3">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title*"
-          className="w-full p-2 border rounded"
-          required
-        />
-        {/* employer input (replaces company) */}
-        <input
-          value={employer}
-          onChange={(e) => setEmployer(e.target.value)}
-          placeholder="Employer*"
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          value={skills}
-          onChange={(e) => setSkills(e.target.value)}
-          placeholder="Skills (comma separated)"
-          className="w-full p-2 border rounded"
-        />
-        {/* description (larger, resizable textarea) */}
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          rows={5}
-          className="w-full p-2 border rounded description-textarea"
-          aria-label="Job description"
-        />
-        <input
-          type="text"
-          onFocus={(e) => (e.target.type = "date")}
-          onBlur={(e) => !e.target.value && (e.target.type = "text")}
-          value={dateApplied}
-          onChange={(e) => setDateApplied(e.target.value)}
-          className="w-full p-2 border rounded text-gray-700"
-          placeholder="Date Applied"
-        />
-        {/* status options now match DB enum */}
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as JobStatus)}
-          className="w-full p-2 border rounded"
-          required
-        >
-          <option value="" disabled>
-            Status*
-          </option>
-          <option value="Pre-interview">Pre-interview</option>
-          <option value="Interview">Interview</option>
-          <option value="Offer">Offer</option>
-        </select>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded centered-button" type="submit">
-          Add Job
-        </button>
-      </form>
+    <div className="job-form-background">
+      <div className="max-w-xl mx-auto job-form-page">
+        <div className="job-form-header">
+          <h1 className="job-form-title">Add a Job</h1>
+          <p className="job-form-subtitle">
+            Quickly save a job application — track dates, status, and notes.
+          </p>
+        </div>
+        <form onSubmit={submit} className="space-y-3">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title*"
+            className="w-full p-2 border rounded"
+            required
+          />
+          {/* employer input (replaces company) */}
+          <input
+            value={employer}
+            onChange={(e) => setEmployer(e.target.value)}
+            placeholder="Employer*"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <input
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder="Skills (comma separated)"
+            className="w-full p-2 border rounded"
+          />
+          {/* description (larger, resizable textarea) */}
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+            rows={5}
+            className="w-full p-2 border rounded description-textarea"
+            aria-label="Job description"
+          />
+          <input
+            type="text"
+            onFocus={(e) => (e.target.type = "date")}
+            onBlur={(e) => !e.target.value && (e.target.type = "text")}
+            value={dateApplied}
+            onChange={(e) => setDateApplied(e.target.value)}
+            className="w-full p-2 border rounded text-gray-700"
+            placeholder="Date Applied*"
+          />
+          {/* status options now match DB enum */}
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as JobStatus)}
+            className="w-full p-2 border rounded text-gray-700"
+            required
+          >
+            <option value="" disabled>
+              Status*
+            </option>
+            <option value="Pre-interview">Pre-interview</option>
+            <option value="Interview">Interview</option>
+            <option value="Offer">Offer</option>
+          </select>
+          <button
+            className="add-job-btn"
+            type="submit"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

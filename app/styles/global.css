@@ -1,12 +1,24 @@
 /* Global defaults and accessible color tokens */
 :root{
   --color-header: #0f3a63; /* dark blue */
-  --color-navbar: #2b6cb0; /* lighter blue */
-  --color-footer: #0f3a63; /* same as header */
+  /* gradient edge (used by page bands) — keep original mid-blue */
+  --gradient-edge: #2b6cb0;
+  /* navbar: slightly darker than the gradient edge so it reads like the gradient extends */
+  --color-navbar: #16785b; /* subtly darker than --gradient-edge */
+  /* footer: dark forest green */
+  --color-footer: #0f3a63;
   --color-main-bg: #ffffff; /* light green (Tailwind green-100 equivalent) */
   --content-max-width: 80rem;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   --page-gutter: 1rem;
+
+  /* Layout heights used by page bands (tweak if your header/footer sizes change) */
+  --header-height: 112px; /* approx header + navbar height */
+  --footer-height: 44px;  /* matches footer min-height in footer.css */
+
+  /* container paddings used by layout (match main container's p-4 pt-6) */
+  --container-pt: 1.5rem; /* tailwind pt-6 */
+  --container-pb: 1rem;   /* tailwind pb-4 (from p-4) */
 }
 
 /* Apply base font and comfortable line-height */
@@ -37,11 +49,19 @@ h1 {
 }
 
 /* Links */
+/* Previously this targeted all anchors and overrode `.text-white` usages:
 a {
   color: var(--color-navbar);
   text-decoration: none;
 }
-a:focus, a:hover {
+*/
+ /* Scoped: only style anchors inside the main content container */
+.app-container a {
+  color: var(--color-navbar);
+  text-decoration: none;
+}
+.app-container a:focus,
+.app-container a:hover {
   text-decoration: underline;
 }
 
