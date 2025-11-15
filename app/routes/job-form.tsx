@@ -194,7 +194,7 @@ export default function JobForm() {
           <option value="Interview">Interview</option>
           <option value="Offer">Offer</option>
         </select>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded">
+        <button className="px-4 py-2 bg-blue-600 text-white rounded centered-button" type="submit">
           Add Job
         </button>
       </form>
