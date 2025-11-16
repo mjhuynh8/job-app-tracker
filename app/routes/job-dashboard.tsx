@@ -21,6 +21,16 @@ export default function JobDashboard() {
     )
   );
   const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  const compareByDate = (a: any, b: any) => {
+    const ta = a?.job_date ? new Date(a.job_date).getTime() : null;
+    const tb = b?.job_date ? new Date(b.job_date).getTime() : null;
+    if (ta === null && tb === null) return 0;
+    if (ta === null) return 1;
+    if (tb === null) return -1;
+    return sortOrder === "desc" ? tb - ta : ta - tb;
+  };
 
   // Update only the toggled column's maxHeight
   useEffect(() => {
@@ -103,7 +113,22 @@ export default function JobDashboard() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
+    <>
+      <div className="flex items-center justify-end gap-2 mb-2">
+        <label htmlFor="date-sort" className="text-sm text-gray-700">
+          Sort by date:
+        </label>
+        <select
+          id="date-sort"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+          className="p-1 border rounded"
+        >
+          <option value="desc">Newest first</option>
+          <option value="asc">Oldest first</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
       {statuses.map((s) => (
         <section key={s} className="border rounded p-2 flex flex-col">
           <header className="flex items-center justify-between">
@@ -135,6 +160,8 @@ export default function JobDashboard() {
                     ? !!j.rejected
                     : !j.rejected && j.status === s
                 )
+                .slice()
+                .sort(compareByDate)
                 .map((j) => {
                   const skills = j.skills || "";
                   const fullDesc = j.description ?? "";
@@ -253,6 +280,7 @@ export default function JobDashboard() {
           </div>
         </section>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
