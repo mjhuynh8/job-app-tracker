@@ -50,6 +50,27 @@ export default function JobDashboard() {
     };
   }, [getToken, loadFromServer]);
 
+  // Helper: obtain a token and call updateJob with it (fallback to local update if token fail)
+  async function updateJobWithAuth(id: string, patch: Partial<any>) {
+    try {
+      const token = await getToken();
+      updateJob(id, patch, token);
+    } catch (err) {
+      console.warn("updateJobWithAuth: failed to get token, applying local update only", err);
+      updateJob(id, patch);
+    }
+  }
+
+  async function deleteJobWithAuth(id: string) {
+    try {
+      const token = await getToken();
+      deleteJob(id, token);
+    } catch (err) {
+      console.warn("deleteJobWithAuth: failed to get token, deleting locally", err);
+      deleteJob(id);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
       {statuses.map((s) => (
@@ -92,12 +113,12 @@ export default function JobDashboard() {
                         <div className="flex items-center gap-2">
                           <select
                             value={j.rejected ? "Rejected" : j.status}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const v = e.target.value;
                               if (v === "Rejected") {
-                                updateJob(j.id, { rejected: true });
+                                await updateJobWithAuth(j.id, { rejected: true });
                               } else {
-                                updateJob(j.id, { status: v as any, rejected: false });
+                                await updateJobWithAuth(j.id, { status: v as any, rejected: false });
                               }
                             }}
                             className="p-1 border rounded"
@@ -109,10 +130,9 @@ export default function JobDashboard() {
                           </select>
                           <button
                             title="Delete job"
-                            onClick={() => {
-                              if (confirm(`Delete "${j.job_title}" at ${j.employer}?`)) {
-                                deleteJob(j.id);
-                              }
+                            onClick={async () => {
+                              if (!confirm(`Delete "${j.job_title}" at ${j.employer}?`)) return;
+                              await deleteJobWithAuth(j.id);
                             }}
                             className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
                           >
@@ -148,7 +168,7 @@ export default function JobDashboard() {
                           <input
                             type="checkbox"
                             checked={!!j.rejected}
-                            onChange={(e) => updateJob(j.id, { rejected: e.target.checked })}
+                            onChange={async (e) => updateJobWithAuth(j.id, { rejected: e.target.checked })}
                           />
                           <span>Rejected</span>
                         </label>
@@ -156,7 +176,7 @@ export default function JobDashboard() {
                           <input
                             type="checkbox"
                             checked={!!j.ghosted}
-                            onChange={(e) => updateJob(j.id, { ghosted: e.target.checked })}
+                            onChange={async (e) => updateJobWithAuth(j.id, { ghosted: e.target.checked })}
                           />
                           <span>Ghosted</span>
                         </label>
