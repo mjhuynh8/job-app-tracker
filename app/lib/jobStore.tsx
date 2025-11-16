@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
+// Development feature flag: set to true to use Netlify functions / DB, false to use localStorage-only.
+const USE_SERVER = false;
+
 export type Job = {
   id: string;
   userid?: string;
@@ -46,6 +49,36 @@ export function JobProvider({ children }: { children: any }) {
   // Load stored jobs on client after mount and normalize shape.
   // For server-backed mode we do NOT auto-load localStorage on mount.
   // Use loadFromServer(token) to populate jobs for authenticated users.
+  // For local dev (USE_SERVER === false) we can optionally hydrate from localStorage here:
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
+      const normalized = stored.map((j) => ({
+        id: j.id ?? Math.random().toString(36).slice(2),
+        userid: j.userid,
+        job_title: String(j.job_title ?? ""),
+        employer: String(j.employer ?? ""),
+        job_date:
+          typeof j.job_date === "string"
+            ? j.job_date
+            : j.job_date
+              ? new Date(j.job_date).toISOString()
+              : undefined,
+        status: (["Pre-interview", "Interview", "Offer"].includes(j.status)
+          ? j.status
+          : "Pre-interview") as Job["status"],
+        skills: typeof j.skills === "string" ? j.skills : "",
+        description:
+          typeof j.description === "string" ? j.description : undefined,
+        rejected: !!j.rejected,
+        ghosted: !!j.ghosted,
+      }));
+      setJobs(normalized);
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, []);
 
   function toISO(d: any): string | undefined {
     if (!d) return undefined;
@@ -65,6 +98,10 @@ export function JobProvider({ children }: { children: any }) {
 
   // New: load jobs from server for a given Clerk token (expects serverless endpoint)
   async function loadFromServer(token: string) {
+    if (!USE_SERVER) {
+      // no-op in local development mode
+      return;
+    }
     if (!token) return;
     try {
       const res = await fetch("/.netlify/functions/jobs-list", {
@@ -116,8 +153,17 @@ export function JobProvider({ children }: { children: any }) {
     // optimistic UI
     setJobs((s) => [...s, normalized]);
 
-    // If token supplied, persist to server (non-blocking)
-    if (token) {
+    // Persist to localStorage for local dev
+    try {
+      const current = JSON.parse(localStorage.getItem("jobs") || "[]");
+      current.push({ ...normalized });
+      localStorage.setItem("jobs", JSON.stringify(current));
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
+    // If token supplied and server mode enabled, persist to server (non-blocking)
+    if (USE_SERVER && token) {
       fetch("/.netlify/functions/jobs-create", {
         method: "POST",
         headers: {
@@ -164,8 +210,15 @@ export function JobProvider({ children }: { children: any }) {
       })
     );
 
-    // Persist change to server if token provided
-    if (token) {
+    // persist updated local state to localStorage for local dev
+    try {
+      const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
+      const updated = stored.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      localStorage.setItem("jobs", JSON.stringify(updated));
+    } catch (e) {}
+
+    // Persist change to server if token provided and server enabled
+    if (USE_SERVER && token) {
       fetch("/.netlify/functions/jobs-update", {
         method: "POST",
         headers: {
@@ -181,16 +234,25 @@ export function JobProvider({ children }: { children: any }) {
   function deleteJob(id: string, token?: string) {
     setJobs((s) => s.filter((j) => j.id !== id));
 
+    // persist deletion to localStorage for local dev
+    try {
+      const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
+      const updated = stored.filter((x) => x.id !== id);
+      localStorage.setItem("jobs", JSON.stringify(updated));
+    } catch (e) {}
+
     if (token) {
-      fetch("/.netlify/functions/jobs-delete", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        // include token in body as a fallback in case Authorization header is stripped
-        body: JSON.stringify({ id, token }),
-      }).catch((err) => console.warn("deleteJob server error", err));
+      if (USE_SERVER) {
+        fetch("/.netlify/functions/jobs-delete", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          // include token in body as a fallback in case Authorization header is stripped
+          body: JSON.stringify({ id, token }),
+        }).catch((err) => console.warn("deleteJob server error", err));
+      }
     }
   }
 

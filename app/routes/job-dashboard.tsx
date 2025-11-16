@@ -5,6 +5,9 @@ import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 import { useAuth } from "@clerk/clerk-react";
 
+// feature flag mirrors jobStore setting; set to false for local-only dev
+const USE_SERVER = false;
+
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 
 export default function JobDashboard() {
@@ -34,6 +37,10 @@ export default function JobDashboard() {
 
   // On mount, load server-side jobs for the authenticated user
   useEffect(() => {
+    if (!USE_SERVER) {
+      // local-only dev: do not attempt to load from server
+      return;
+    }
     let mounted = true;
     (async () => {
       try {
@@ -52,6 +59,11 @@ export default function JobDashboard() {
 
   // Helper: obtain a token and call updateJob with it (fallback to local update if token fail)
   async function updateJobWithAuth(id: string, patch: Partial<any>) {
+    if (!USE_SERVER) {
+      // local-only mode: just update local store
+      updateJob(id, patch);
+      return;
+    }
     try {
       const token = await getToken();
       updateJob(id, patch, token);
@@ -62,6 +74,10 @@ export default function JobDashboard() {
   }
 
   async function deleteJobWithAuth(id: string) {
+    if (!USE_SERVER) {
+      deleteJob(id);
+      return;
+    }
     try {
       const token = await getToken();
       deleteJob(id, token);

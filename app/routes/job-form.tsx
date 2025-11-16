@@ -5,6 +5,9 @@ import { useJobs } from "../lib/jobStore";
 import "./job-form.css";
 import { useAuth } from "@clerk/clerk-react";
 
+// Set to false to use localStorage-only mode for development.
+const USE_SERVER = false;
+
 export default function JobForm() {
   const { getToken } = useAuth(); // ← top-level hook
   const { jobs, addJob } = useJobs();
@@ -59,50 +62,52 @@ export default function JobForm() {
         description: description.trim(),
       };
 
-      // Prefer server persist when possible: try to get a Clerk token and create via function.
-      // If anything fails, fall back to local addJob for development.
-      try {
-        const token = await getToken();
-        if (token) {
-          const res = await fetch("/.netlify/functions/jobs-create", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...jobData, token }),
-          });
-          const text = await res.text();
-          if (!res.ok) {
-            console.warn("jobs-create failed, falling back to local add:", res.status, text);
-            throw new Error("Server create failed");
+      if (USE_SERVER) {
+        try {
+          const token = await getToken();
+          if (token) {
+            const res = await fetch("/.netlify/functions/jobs-create", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ ...jobData, token }),
+            });
+            const text = await res.text();
+            if (!res.ok) {
+              console.warn("jobs-create failed, falling back to local add:", res.status, text);
+              throw new Error("Server create failed");
+            }
+            const savedJob = JSON.parse(text);
+            const normalized = {
+              id:
+                savedJob.id ??
+                (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
+              userid: savedJob.userId ?? savedJob.userId ?? undefined,
+              job_title: savedJob.job_title,
+              employer: savedJob.employer,
+              job_date: savedJob.job_date
+                ? typeof savedJob.job_date === "string"
+                  ? savedJob.job_date
+                  : new Date(savedJob.job_date).toISOString()
+                : undefined,
+              status: savedJob.status,
+              skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
+              description: savedJob.description,
+              rejected: !!savedJob.rejected,
+              ghosted: !!savedJob.ghosted,
+            };
+            addJob(normalized);
+          } else {
+            addJob(jobData as any);
           }
-          const savedJob = JSON.parse(text);
-          const normalized = {
-            id:
-              savedJob.id ??
-              (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
-            userid: savedJob.userId ?? savedJob.userId ?? undefined,
-            job_title: savedJob.job_title,
-            employer: savedJob.employer,
-            job_date: savedJob.job_date
-              ? typeof savedJob.job_date === "string"
-                ? savedJob.job_date
-                : new Date(savedJob.job_date).toISOString()
-              : undefined,
-            status: savedJob.status,
-            skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
-            description: savedJob.description,
-            rejected: !!savedJob.rejected,
-            ghosted: !!savedJob.ghosted,
-          };
-          addJob(normalized);
-        } else {
-          // no token -> fallback to local add
+        } catch (err) {
+          console.warn("JobForm server create failed, using local store:", err);
           addJob(jobData as any);
         }
-      } catch (err) {
-        console.warn("JobForm server create failed, using local store:", err);
+      } else {
+        // local-only mode
         addJob(jobData as any);
       }
 
