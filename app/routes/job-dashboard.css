@@ -57,12 +57,12 @@
 .job-dashboard .tiles-container {
   overflow: hidden;
   transition: max-height 260ms cubic-bezier(.2,.9,.2,1);
-  max-height: calc(var(--job-tile-height) * 5); /* expanded height */
+  max-height: calc(var(--job-tile-height) * 9); /* expanded height */
 }
 
 /* inner scroll area that provides the scrollbar when expanded */
 .job-dashboard .tiles-container .tiles-scroll {
-  max-height: calc(var(--job-tile-height) * 5);
+  max-height: calc(var(--job-tile-height) * 9);
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px; /* avoid overlap with scrollbar */

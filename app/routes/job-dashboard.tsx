@@ -1,11 +1,15 @@
+// "use client";  <-- commented so local-only mode can be restored easily
+
 import { useState, useRef, useEffect } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
+import { useAuth } from "@clerk/clerk-react";
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 
 export default function JobDashboard() {
-  const { jobs, updateJob, deleteJob } = useJobs();
+  const { jobs, updateJob, deleteJob, loadFromServer } = useJobs();
+  const { getToken } = useAuth();
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [open, setOpen] = useState<Record<string, boolean>>(
     () => statuses.reduce((acc, s) => ({ ...acc, [s]: true }), {} as Record<string, boolean>)
@@ -27,6 +31,24 @@ export default function JobDashboard() {
       }
     });
   }, [open, jobs]);
+
+  // On mount, load server-side jobs for the authenticated user
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (token && mounted && loadFromServer) {
+          await loadFromServer(token);
+        }
+      } catch (err) {
+        console.warn("job-dashboard: loadFromServer failed", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [getToken, loadFromServer]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
