@@ -172,7 +172,8 @@ export function JobProvider({ children }: { children: any }) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id, patch }),
+        // include token in body as a fallback in case Authorization header is stripped
+        body: JSON.stringify({ id, patch, token }),
       }).catch((err) => console.warn("updateJob server error", err));
     }
   }
@@ -187,7 +188,8 @@ export function JobProvider({ children }: { children: any }) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        // include token in body as a fallback in case Authorization header is stripped
+        body: JSON.stringify({ id, token }),
       }).catch((err) => console.warn("deleteJob server error", err));
     }
   }

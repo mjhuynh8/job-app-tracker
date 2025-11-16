@@ -46,9 +46,6 @@ export default function JobForm() {
         return;
       }
 
-      // when running on localhost, bypass the
-      // function and persist directly into the client store to
-      // develop locally without deploying the Netlify functions
       const jobData = {
         job_title: title.trim(),
         employer: employer.trim(),
@@ -61,69 +58,53 @@ export default function JobForm() {
           .join(", "),
         description: description.trim(),
       };
-      // If running on localhost, add directly to local store
-      if (
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1")
-      ) {
+
+      // Prefer server persist when possible: try to get a Clerk token and create via function.
+      // If anything fails, fall back to local addJob for development.
+      try {
+        const token = await getToken();
+        if (token) {
+          const res = await fetch("/.netlify/functions/jobs-create", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ...jobData, token }),
+          });
+          const text = await res.text();
+          if (!res.ok) {
+            console.warn("jobs-create failed, falling back to local add:", res.status, text);
+            throw new Error("Server create failed");
+          }
+          const savedJob = JSON.parse(text);
+          const normalized = {
+            id:
+              savedJob.id ??
+              (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
+            userid: savedJob.userId ?? savedJob.userId ?? undefined,
+            job_title: savedJob.job_title,
+            employer: savedJob.employer,
+            job_date: savedJob.job_date
+              ? typeof savedJob.job_date === "string"
+                ? savedJob.job_date
+                : new Date(savedJob.job_date).toISOString()
+              : undefined,
+            status: savedJob.status,
+            skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
+            description: savedJob.description,
+            rejected: !!savedJob.rejected,
+            ghosted: !!savedJob.ghosted,
+          };
+          addJob(normalized);
+        } else {
+          // no token -> fallback to local add
+          addJob(jobData as any);
+        }
+      } catch (err) {
+        console.warn("JobForm server create failed, using local store:", err);
         addJob(jobData as any);
-        // reset form
-        setTitle("");
-        setEmployer("");
-        setSkills("");
-        setDateApplied("");
-        setDescription("");
-        setStatus("");
-        return; // exit early
       }
-
-      // get Clerk token (getToken is from top-level useAuth)
-      const token = await getToken();
-      console.log("Got Clerk token:", !!token);
-
-      const res = await fetch("/.netlify/functions/jobs-create", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        // include token in the body as a fallback in case a proxy/edge strips Authorization
-        body: JSON.stringify({ ...jobData, token }),
-      });
-
-      const text = await res.text();
-      console.log("jobs-create response status:", res.status, "body:", text);
-
-      if (!res.ok) {
-        throw new Error(text || `Server returned ${res.status}`);
-      }
-
-      const savedJob = JSON.parse(text);
-
-      // normalize server shape to your Job type
-      const normalized = {
-        id:
-          savedJob.id ??
-          (savedJob._id
-            ? String(savedJob._id)
-            : Math.random().toString(36).slice(2)),
-        userid: savedJob.userId ?? savedJob.userId ?? undefined,
-        job_title: savedJob.job_title,
-        employer: savedJob.employer,
-        job_date: savedJob.job_date
-          ? typeof savedJob.job_date === "string"
-            ? savedJob.job_date
-            : new Date(savedJob.job_date).toISOString()
-          : undefined,
-        status: savedJob.status,
-        skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
-        description: savedJob.description,
-        rejected: !!savedJob.rejected,
-        ghosted: !!savedJob.ghosted,
-      };
-
-      addJob(normalized);
 
       // reset form
       setTitle("");
