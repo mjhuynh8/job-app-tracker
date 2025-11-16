@@ -67,7 +67,7 @@ export default function Home() {
                 {signedIn ? (
                   <>
                     <Link
-                      to="/dashboard"
+                      to="/job-dashboard"
                       className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-white font-semibold shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       Go to Dashboard
@@ -113,7 +113,10 @@ export default function Home() {
 
             {/* Right: hero illustration */}
             <div className="relative">
-              <div className="absolute -inset-4 -z-10 rounded-3xl bg-emerald-100/50 blur-2xl" aria-hidden="true" />
+              <div
+                className="absolute -inset-4 -z-10 rounded-3xl bg-emerald-100/50 blur-2xl"
+                aria-hidden="true"
+              />
               <img
                 src={HERO_IMG}
                 alt="Job application tracker dashboard with stages and analytics"
@@ -138,13 +141,17 @@ export default function Home() {
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900">Job Details</h3>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Job Details
+              </h3>
               <p className="mt-2 text-slate-600 text-sm">
                 Save key info: roles, skills, notes, and dates.
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900">Analytics</h3>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Analytics
+              </h3>
               <p className="mt-2 text-slate-600 text-sm">
                 Charts for response time, interview rate, and offer rate.
               </p>
