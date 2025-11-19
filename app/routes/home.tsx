@@ -131,7 +131,8 @@ export default function Home() {
         {/* Feature cards (under hero) */}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
+                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
               <h3 className="text-lg font-semibold text-slate-900">
                 Track Applications
               </h3>
@@ -140,7 +141,8 @@ export default function Home() {
                 status.
               </p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
+                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
               <h3 className="text-lg font-semibold text-slate-900">
                 Job Details
               </h3>
@@ -148,7 +150,9 @@ export default function Home() {
                 Save key info: roles, skills, notes, and dates.
               </p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6">
+
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
+                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
               <h3 className="text-lg font-semibold text-slate-900">
                 Analytics
               </h3>
