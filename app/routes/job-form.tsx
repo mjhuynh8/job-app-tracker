@@ -18,6 +18,7 @@ export default function JobForm() {
   const [status, setStatus] = useState<JobStatus | "">("");
   const [dateApplied, setDateApplied] = useState("");
   const [description, setDescription] = useState("");
+  const [submittedMsg, setSubmittedMsg] = useState("");
 
   function isValidDate(dateStr: string): boolean {
     const date = new Date(dateStr);
@@ -118,6 +119,8 @@ export default function JobForm() {
       setDateApplied("");
       setDescription("");
       setStatus("");
+      setSubmittedMsg("Job added! Go check it out on your Dashboard!");
+      setTimeout(() => setSubmittedMsg(""), 4000);
     } catch (err) {
       console.error("submit error", err);
       alert("Failed to save job. See console for details.");
@@ -192,6 +195,11 @@ export default function JobForm() {
           >
             Submit
           </button>
+          {submittedMsg && (
+            <div className="mt-2 p-2 text-sm rounded text-green-800 bg-green-100 border border-green-300">
+              {submittedMsg}
+            </div>
+          )}
         </form>
       </div>
     </div>
