@@ -128,40 +128,86 @@ export default function Home() {
           </div>
         </div>
 
+        {/* <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
+        everything you need to stay organized
+        </h2> */}
+
+        {/* Feature cards (under hero) */}
         {/* Feature cards (under hero) */}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
-                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Track Applications
-              </h3>
-              <p className="mt-2 text-slate-600 text-sm">
-                Stages for Applied, Interviewing, and Offer to track application
-                status.
+
+            {/* Card 1 */}
+            <div
+              className="bg-[#0F2F27] rounded-2xl shadow-sm ring-1 ring-slate-800 p-6
+                        transform transition-all duration-200 hover:-translate-y-1 hover:shadow-lg
+                        hover:ring-emerald-300/40"
+            >
+              <div className="flex items-start justify-between">
+                <h3 className="text-lg font-semibold text-white">
+                  Track Applications
+                </h3>
+
+                {/* icon */}
+                <div className="flex h-9 w-9 items-center justify-center 
+                                rounded-full bg-emerald-600/20 text-emerald-300 text-base">
+                  📌
+                </div>
+              </div>
+
+              <p className="mt-3 text-slate-200 text-sm">
+                Stages for Applied, Interviewing, and Offer to track application status.
               </p>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
-                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Job Details
-              </h3>
-              <p className="mt-2 text-slate-600 text-sm">
+
+            {/* Card 2 */}
+            <div
+              className="bg-[#0F2F27] rounded-2xl shadow-sm ring-1 ring-slate-800 p-6
+                        transform transition-all duration-200 hover:-translate-y-1 hover:shadow-lg
+                        hover:ring-emerald-300/40"
+            >
+              <div className="flex items-start justify-between">
+                <h3 className="text-lg font-semibold text-white">
+                  Job Details
+                </h3>
+
+                <div className="flex h-9 w-9 items-center justify-center 
+                                rounded-full bg-emerald-600/20 text-emerald-300 text-base">
+                  🗂️
+                </div>
+              </div>
+
+              <p className="mt-3 text-slate-200 text-sm">
                 Save key info: roles, skills, notes, and dates.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 p-6 
-                        transform transition-transform duration-200 hover:scale-105 hover:shadow-md">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Analytics
-              </h3>
-              <p className="mt-2 text-slate-600 text-sm">
+            {/* Card 3 */}
+            <div
+              className="bg-[#0F2F27] rounded-2xl shadow-sm ring-1 ring-slate-800 p-6
+                        transform transition-all duration-200 hover:-translate-y-1 hover:shadow-lg
+                        hover:ring-emerald-300/40"
+            >
+              <div className="flex items-start justify-between">
+                <h3 className="text-lg font-semibold text-white">
+                  Analytics
+                </h3>
+
+                <div className="flex h-9 w-9 items-center justify-center 
+                                rounded-full bg-emerald-600/20 text-emerald-300 text-base">
+                  📊
+                </div>
+              </div>
+
+              <p className="mt-3 text-slate-200 text-sm">
                 Charts for response time, interview rate, and offer rate.
               </p>
             </div>
+
           </div>
         </div>
+
+
       </section>
     </>
   );
