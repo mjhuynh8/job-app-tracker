@@ -22,6 +22,7 @@ export default function JobDashboard() {
   );
   const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortBy, setSortBy] = useState<"date" | "employer" | "title">("date");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
 
   // Helper to get cutoff date for range filters
@@ -49,13 +50,29 @@ export default function JobDashboard() {
     return new Date(j.job_date) >= cutoff;
   };
 
-  const compareByDate = (a: any, b: any) => {
-    const ta = a?.job_date ? new Date(a.job_date).getTime() : null;
-    const tb = b?.job_date ? new Date(b.job_date).getTime() : null;
-    if (ta === null && tb === null) return 0;
-    if (ta === null) return 1;
-    if (tb === null) return -1;
-    return sortOrder === "desc" ? tb - ta : ta - tb;
+  const compareJobs = (a: any, b: any) => {
+    switch (sortBy) {
+      case "date": {
+        const ta = a?.job_date ? new Date(a.job_date).getTime() : null;
+        const tb = b?.job_date ? new Date(b.job_date).getTime() : null;
+        if (ta === null && tb === null) return 0;
+        if (ta === null) return 1;
+        if (tb === null) return -1;
+        return sortOrder === "desc" ? tb - ta : ta - tb;
+      }
+      case "employer": {
+        const ea = (a.employer || "").toLowerCase();
+        const eb = (b.employer || "").toLowerCase();
+        return sortOrder === "desc" ? eb.localeCompare(ea) : ea.localeCompare(eb);
+      }
+      case "title": {
+        const ta = (a.job_title || "").toLowerCase();
+        const tb = (b.job_title || "").toLowerCase();
+        return sortOrder === "desc" ? tb.localeCompare(ta) : ta.localeCompare(tb);
+      }
+      default:
+        return 0;
+    }
   };
 
   // Update only the toggled column's maxHeight
@@ -159,17 +176,32 @@ export default function JobDashboard() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="date-sort" className="text-sm text-gray-700">
-            Sort by date:
+          <label htmlFor="sort-by" className="text-sm text-gray-700">
+            Sort by:
           </label>
           <select
-            id="date-sort"
+            id="sort-by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "date" | "employer" | "title")}
+            className="p-1 border rounded"
+          >
+            <option value="date">Date</option>
+            <option value="employer">Employer</option>
+            <option value="title">Job title</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-order" className="text-sm text-gray-700">
+            Order:
+          </label>
+          <select
+            id="sort-order"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
             className="p-1 border rounded"
           >
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
           </select>
         </div>
       </div>
@@ -207,7 +239,7 @@ export default function JobDashboard() {
                 )
                 .filter(passesDateFilter)
                 .slice()
-                .sort(compareByDate)
+                .sort(compareJobs)
                 .map((j) => {
                   const skills = j.skills || "";
                   const fullDesc = j.description ?? "";
