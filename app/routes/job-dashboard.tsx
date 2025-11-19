@@ -22,6 +22,32 @@ export default function JobDashboard() {
   );
   const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
+
+  // Helper to get cutoff date for range filters
+  const getCutoffDate = (range: "week" | "month" | "3months" | "6months") => {
+    const now = new Date();
+    switch (range) {
+      case "week":
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case "month":
+        return new Date(now.setMonth(now.getMonth() - 1));
+      case "3months":
+        return new Date(now.setMonth(now.getMonth() - 3));
+      case "6months":
+        return new Date(now.setMonth(now.getMonth() - 6));
+      default:
+        return null;
+    }
+  };
+
+  // Filter helpers
+  const passesDateFilter = (j: any) => {
+    if (dateFilter === "all") return true;
+    const cutoff = getCutoffDate(dateFilter);
+    if (!cutoff || !j.job_date) return false;
+    return new Date(j.job_date) >= cutoff;
+  };
 
   const compareByDate = (a: any, b: any) => {
     const ta = a?.job_date ? new Date(a.job_date).getTime() : null;
@@ -114,19 +140,38 @@ export default function JobDashboard() {
 
   return (
     <>
-      <div className="flex items-center justify-end gap-2 mb-2">
-        <label htmlFor="date-sort" className="text-sm text-gray-700">
-          Sort by date:
-        </label>
-        <select
-          id="date-sort"
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-          className="p-1 border rounded"
-        >
-          <option value="desc">Newest first</option>
-          <option value="asc">Oldest first</option>
-        </select>
+      <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
+        <div className="flex items-center gap-2">
+          <label htmlFor="date-range-filter" className="text-sm text-gray-700">
+            Date range:
+          </label>
+          <select
+            id="date-range-filter"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value as any)}
+            className="p-1 border rounded"
+          >
+            <option value="all">All time</option>
+            <option value="week">Past week</option>
+            <option value="month">Past month</option>
+            <option value="3months">Past 3 months</option>
+            <option value="6months">Past 6 months</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="date-sort" className="text-sm text-gray-700">
+            Sort by date:
+          </label>
+          <select
+            id="date-sort"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="p-1 border rounded"
+          >
+            <option value="desc">Newest first</option>
+            <option value="asc">Oldest first</option>
+          </select>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
       {statuses.map((s) => (
@@ -160,6 +205,7 @@ export default function JobDashboard() {
                     ? !!j.rejected
                     : !j.rejected && j.status === s
                 )
+                .filter(passesDateFilter)
                 .slice()
                 .sort(compareByDate)
                 .map((j) => {
