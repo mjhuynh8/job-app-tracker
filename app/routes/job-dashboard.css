@@ -29,7 +29,7 @@
   cursor: pointer;
   padding: 0 6px;
   font-size: 14px;
-  color: #eeeeee; /* slate-600 */
+  color: #CCCCCC; /* slate-600 */
 }
 :root {
   /* Adjust this to change the assumed tile height used to compute the 5-tile column height */

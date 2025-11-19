@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.53.3",
     "@clerk/clerk-sdk-node": "^5.1.6",
+    "@mdi/js": "^7.4.47",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
     "isbot": "^5.1.31",

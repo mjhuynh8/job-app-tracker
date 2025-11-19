@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 import { useAuth } from "@clerk/clerk-react";
+import { mdiTrashCanOutline } from "@mdi/js";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
 const USE_SERVER = false;
@@ -21,6 +22,7 @@ export default function JobDashboard() {
     )
   );
   const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
+  const [skillsOpen, setSkillsOpen] = useState<Record<string, boolean>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [sortBy, setSortBy] = useState<"date" | "employer" | "title">("date");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
@@ -243,10 +245,12 @@ export default function JobDashboard() {
                 .map((j) => {
                   const skills = j.skills || "";
                   const fullDesc = j.description ?? "";
-                  const needsToggle = fullDesc.length > 120;
-                  const isOpen = !!descOpen[j.id];
-                  const preview =
-                    needsToggle && !isOpen
+                  const descNeedsToggle = fullDesc.length > 120;
+                  const descIsOpen = !!descOpen[j.id];
+                  const skillsIsOpen = !!skillsOpen[j.id];
+                  const hasDesc = fullDesc.length > 0;
+                  const descPreview =
+                    descNeedsToggle && !descIsOpen
                       ? fullDesc.slice(0, 120) + "…"
                       : fullDesc;
                   return (
@@ -294,29 +298,93 @@ export default function JobDashboard() {
                             }}
                             className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
                           >
-                            🗑
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d={mdiTrashCanOutline} />
+                            </svg>
                           </button>
                         </div>
                       </div>
                       <div className="text-sm mt-2">
-                        Skills: {skills || "N/A"}
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Skills
+                        </label>
+                        <div className="job-description-container">
+                          {skillsIsOpen ? (
+                            <input
+                              className="w-full border rounded px-1 py-1 text-sm"
+                              defaultValue={skills}
+                              placeholder="Add skills, comma separated"
+                              onBlur={async (e) => {
+                                await updateJobWithAuth(j.id, {
+                                  skills: e.target.value,
+                                });
+                              }}
+                            />
+                          ) : (
+                            <div className="job-description-text">
+                              {skills || "N/A"}
+                            </div>
+                          )}
+                          <button
+                            className="job-description-toggle"
+                            aria-expanded={skillsIsOpen}
+                            onClick={() =>
+                              setSkillsOpen((m) => ({
+                                ...m,
+                                [j.id]: !m[j.id],
+                              }))
+                            }
+                          >
+                            {skillsIsOpen ? "Done" : skills ? "Edit" : "Add"}
+                          </button>
+                        </div>
                       </div>
                       <div className="text-sm mt-2">
-                        Description:
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Description
+                        </label>
                         <div className="job-description-container">
-                          <div className="job-description-text">{preview}</div>
-                          {needsToggle && (
-                            <button
-                              className="job-description-toggle"
-                              aria-expanded={isOpen}
-                              aria-controls={`desc-${j.id}`}
-                              onClick={() =>
-                                setDescOpen((m) => ({ ...m, [j.id]: !m[j.id] }))
-                              }
-                            >
-                              {isOpen ? "▾" : "▸"}
-                            </button>
+                          {descIsOpen ? (
+                            <textarea
+                              id={`desc-${j.id}`}
+                              className="w-full border rounded px-1 py-1 text-sm"
+                              defaultValue={fullDesc}
+                              rows={3}
+                              onBlur={async (e) => {
+                                await updateJobWithAuth(j.id, {
+                                  description: e.target.value,
+                                });
+                              }}
+                            />
+                          ) : (
+                            <div className="job-description-text">
+                              {descPreview || "N/A"}
+                            </div>
                           )}
+                          <button
+                            className="job-description-toggle"
+                            aria-expanded={descIsOpen}
+                            aria-controls={`desc-${j.id}`}
+                            onClick={() =>
+                              setDescOpen((m) => ({
+                                ...m,
+                                [j.id]: !m[j.id],
+                              }))
+                            }
+                          >
+                            {descIsOpen
+                              ? "Done"
+                              : hasDesc
+                              ? descNeedsToggle
+                                ? "More"
+                                : "Edit"
+                              : "Add"}
+                          </button>
                         </div>
                       </div>
                       <div className="text-sm mt-2">
