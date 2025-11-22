@@ -1,6 +1,6 @@
 .job-dashboard-container {
   /* limit width so controls + columns are centered and smaller than full-bleed background */
-  max-width: 1450px;
+  max-width: 1100px;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -52,6 +52,12 @@
 :root {
   /* Adjust this to change the assumed tile height used to compute the 5-tile column height */
   --job-tile-height: 72px;
+
+  /* height a bit larger than one tile for the horizontal rejected row */
+  --rejected-row-height: calc(var(--job-tile-height) + 16px);
+  /* grid parity for rejected row tile width */
+  --columns-count: 3;
+  --columns-gap: 1rem; /* Tailwind gap-4 */
 }
 
 /* tiles container: shows approximately 5 job tiles tall, scrolls when needed */
@@ -170,7 +176,7 @@
 
 /* Job tile card */
 .job-tile {
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 2px solid rgba(15, 23, 42, 0.06);
   border-radius: 0.5rem;
   padding: 0.75rem;
   margin-bottom: 0.75rem;
@@ -277,4 +283,42 @@
   padding: 0;
   margin-top: calc(-1 * var(--container-pt));   /* cancel parent top padding (pt-6) */
   margin-bottom: calc(-1 * var(--container-pb));/* cancel parent bottom padding (p-4) */
+}
+
+/* Rejected row: horizontal scroller matching full container width */
+.job-dashboard .rejected-horizontal .tiles-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: var(--columns-gap); /* match the grid gap */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-right: 4px;   /* avoid overlap with scrollbar */
+  padding-bottom: 2px;  /* slight space for horizontal scrollbar */
+  /* allow row to grow to the full height of its tiles to avoid cropping */
+  height: auto;
+}
+
+/* Keep tiles in one row and remove extra vertical spacing; make them white and same width as grid column */
+.job-dashboard .rejected-horizontal .job-tile {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  background: #fef2f2; /* light red (Tailwind red-50), lighter than header red-500 */
+  border-color: rgba(127, 29, 29, 0.06); /* subtle red-tinted border */
+  box-sizing: border-box;
+  width: calc(
+    (100% - (var(--columns-gap) * (var(--columns-count) - 1)))
+    / var(--columns-count)
+  );
+}
+
+/* Optional: horizontal scrollbar styling (webkit) */
+.job-dashboard .rejected-horizontal .tiles-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.job-dashboard .rejected-horizontal .tiles-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+}
+.job-dashboard .rejected-horizontal .tiles-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }

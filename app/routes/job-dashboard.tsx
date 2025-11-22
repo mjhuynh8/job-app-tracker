@@ -13,6 +13,7 @@ import { Link } from "react-router";
 const USE_SERVER = false;
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
+const topStatuses = ["Pre-interview", "Interview", "Offer"] as const;
 function EditIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 26 26" fill="currentColor" aria-hidden>
@@ -197,7 +198,8 @@ export default function JobDashboard() {
 
   return (
     <div className="job-dashboard-background">
-      <div className="job-dashboard-container">
+      <div className="job-dashboard-container job-dashboard">
+        {/* selectors row */}
         <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
           <div className="flex items-center gap-2">
             <label htmlFor="date-range-filter" className="text-sm text-white">
@@ -246,179 +248,319 @@ export default function JobDashboard() {
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
-        {statuses.map((s) => (
-          <section key={s} className={`border rounded p-2 flex flex-col ${columnClassForStatus(s)}`}>
-            <header className="flex items-center justify-between job-column-header">
-              <h2 className={`font-semibold ${getStatusColor(s)} job-column-title`}>{s}</h2>
-              <button
-                onClick={() => setOpen(o => ({ ...o, [s]: !o[s] }))}
-                aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
-                aria-expanded={!!open[s]}
-                title={open[s] ? "Collapse" : "Expand"}
-              >
-                {open[s] ? "▾" : "▸"}
-              </button>
-            </header>
-            <div
-              className="mt-2 tiles-container"
-              ref={(el) => {
-                containerRefs.current[s] = el;
-              }}
-              aria-hidden={!open[s]}
-            >
+
+        {/* top three columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {topStatuses.map((s) => (
+            <section key={s} className={`border rounded p-2 flex flex-col ${columnClassForStatus(s)}`}>
+              <header className="flex items-center justify-between job-column-header">
+                <h2 className={`font-semibold ${getStatusColor(s)} job-column-title`}>{s}</h2>
+                <button
+                  onClick={() => setOpen(o => ({ ...o, [s]: !o[s] }))}
+                  aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
+                  aria-expanded={!!open[s]}
+                  title={open[s] ? "Collapse" : "Expand"}
+                >
+                  {open[s] ? "▾" : "▸"}
+                </button>
+              </header>
               <div
-                className="tiles-scroll"
-                role="region"
-                aria-labelledby={`col-${s}`}
+                className="mt-2 tiles-container"
+                ref={(el) => {
+                  containerRefs.current[s] = el;
+                }}
+                aria-hidden={!open[s]}
               >
-                {jobs
-                  .filter(j => inColumn(s, j))
-                  .filter(passesDateFilter)
-                  .sort(compareJobs)
-                  .map((j) => {
-                    const loc = j.location || "";
-                    const displayLoc = formatLocationForDisplay(j.location || "");
-                    const locationIsOpen = !!locationOpen[j.id];
-                    const hasLocation = !!displayLoc;
-                    return (
-										<div key={j.id} className="job-tile">
-											<div className="flex items-center justify-between">
-												<div>
-													{/* Title now links to job-view page */}
-													<div className="font-semibold">
+                <div
+                  className="tiles-scroll"
+                  role="region"
+                  aria-labelledby={`col-${s}`}
+                >
+                  {jobs
+                    .filter(j => inColumn(s, j))
+                    .filter(passesDateFilter)
+                    .sort(compareJobs)
+                    .map((j) => {
+                      const loc = j.location || "";
+                      const displayLoc = formatLocationForDisplay(j.location || "");
+                      const locationIsOpen = !!locationOpen[j.id];
+                      const hasLocation = !!displayLoc;
+                      return (
+                        <div key={j.id} className="job-tile">
+                          <div>
+                            <div className="font-semibold">
+                              <Link to={`/job-view/${j.id}`} className="underline hover:no-underline">
+                                {j.job_title}
+                              </Link>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {j.employer}
+                            </div>
+                          </div>
+
+                          {/* Location area */}
+                          <div className="text-sm mt-2">
+                            <div className="job-location-container">
+                              {locationIsOpen ? (
+                                <input
+                                  className="w-full border rounded px-1 py-1 text-sm"
+                                  defaultValue={loc}
+                                  placeholder="City, State, Country"
+                                  onBlur={async (e) => {
+                                    const raw = (e.target.value || "").trim();
+                                    if (!raw) {
+                                      await updateJobWithAuth(j.id, { location: undefined });
+                                      setLocationOpen(m => ({ ...m, [j.id]: false }));
+                                      return;
+                                    }
+                                    if (!isValidLocationInput(raw)) {
+                                      alert("Invalid location. Use 'City, State' or 'Washington, DC'.");
+                                      return;
+                                    }
+                                    await updateJobWithAuth(j.id, { location: raw });
+                                    setLocationOpen(m => ({ ...m, [j.id]: false }));
+                                  }}
+                                />
+                              ) : (
+                                <div className="job-location-text">
+                                  {j.work_mode === "Remote"
+                                    ? "Remote"
+                                    : `${displayLoc ?? "N/A"} (${String(j.work_mode).toLowerCase()})`}
+                                </div>
+                              )}
+                              <button
+                                className="job-location-toggle"
+                                aria-expanded={locationIsOpen}
+                                onClick={() =>
+                                  setLocationOpen((m) => ({
+                                    ...m,
+                                    [j.id]: !m[j.id],
+                                  }))
+                                }
+                              >
+                                {locationIsOpen ? "Done" : hasLocation ? <EditIcon /> : "Add"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="text-sm mt-2">
+                            Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                          </div>
+
+                          <div className="flex items-center gap-4 mt-2 text-sm">
+                            <label className="inline-flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={!!j.rejected}
+                                onChange={async (e) =>
+                                  updateJobWithAuth(j.id, {
+                                    rejected: e.target.checked,
+                                  })
+                                }
+                              />
+                              <span>Rejected</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={!!j.ghosted}
+                                onChange={async (e) =>
+                                  updateJobWithAuth(j.id, {
+                                    ghosted: e.target.checked,
+                                  })
+                                }
+                              />
+                              <span>Ghosted</span>
+                            </label>
+
+                            {/* Inline status select placed adjacent to Ghosted checkbox */}
+                            <select
+                              value={j.status}
+                              onChange={async (e) => {
+                                const v = e.target.value;
+                                await updateJobWithAuth(j.id, { status: v as any });
+                              }}
+                              className="status-select-inline"
+                              aria-label="Status"
+                            >
+                              <option value="Pre-interview">Pre-interview</option>
+                              <option value="Interview">Interview</option>
+                              <option value="Offer">Offer</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+
+        {/* Rejected horizontal row (full width, inside container) */}
+        <section className={`mt-4 border rounded p-2 flex flex-col ${columnClassForStatus("Rejected")} rejected-horizontal`}>
+          <header className="flex items-center justify-between job-column-header">
+            <h2 className={`font-semibold ${getStatusColor("Rejected")} job-column-title`}>Rejected</h2>
+            <button
+              onClick={() => setOpen(o => ({ ...o, ["Rejected"]: !o["Rejected"] }))}
+              aria-label={open["Rejected"] ? "Collapse Rejected column" : "Expand Rejected column"}
+              aria-expanded={!!open["Rejected"]}
+              title={open["Rejected"] ? "Collapse" : "Expand"}
+            >
+              {open["Rejected"] ? "▾" : "▸"}
+            </button>
+          </header>
+          <div
+            className="mt-2 tiles-container"
+            ref={(el) => { containerRefs.current["Rejected"] = el; }}
+            aria-hidden={!open["Rejected"]}
+          >
+            <div className="tiles-scroll" role="region" aria-labelledby="col-Rejected">
+              {jobs
+                .filter(j => inColumn("Rejected", j))
+                .filter(passesDateFilter)
+                .sort(compareJobs)
+                .map((j) => {
+                  const loc = j.location || "";
+                  const displayLoc = formatLocationForDisplay(j.location || "");
+                  const locationIsOpen = !!locationOpen[j.id];
+                  const hasLocation = !!displayLoc;
+                  return (
+                    <div key={j.id} className="job-tile">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {/* Title now links to job-view page */}
+                          <div className="font-semibold">
                             <Link to={`/job-view/${j.id}`} className="underline hover:no-underline">
                               {j.job_title}
                             </Link>
                           </div>
-													<div className="text-sm text-gray-600">
-														{j.employer}
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<button
-														title="Delete job"
-														onClick={async () => {
-															if (
-																!confirm(
-																	`Delete "${j.job_title}" at ${j.employer}?`
-																)
-															)
-																return;
-															await deleteJobWithAuth(j.id);
-														}}
-														className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
-													>
-														<svg
-															xmlns="http://www.w3.org/2000/svg"
-															className="h-5 w-5"
-															viewBox="0 0 24 24"
-															fill="currentColor"
-														>
-															<path d={mdiTrashCanOutline} />
-														</svg>
-													</button>
-												</div>
-											</div>
+                          <div className="text-sm text-gray-600">
+                            {j.employer}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            title="Delete job"
+                            onClick={async () => {
+                              if (
+                                !confirm(
+                                  `Delete "${j.job_title}" at ${j.employer}?`
+                                )
+                              )
+                                return;
+                              await deleteJobWithAuth(j.id);
+                            }}
+                            className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d={mdiTrashCanOutline} />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
 
-											{/* Location area */}
-											<div className="text-sm mt-2">
-												<div className="job-location-container">
-													{locationIsOpen ? (
-														<input
-															className="w-full border rounded px-1 py-1 text-sm"
-															defaultValue={loc}
-															placeholder="City, State, Country"
-															onBlur={async (e) => {
-																const raw = (e.target.value || "").trim();
-																if (!raw) {
-																	await updateJobWithAuth(j.id, { location: undefined });
-																	setLocationOpen(m => ({ ...m, [j.id]: false }));
-																	return;
-																}
-																if (!isValidLocationInput(raw)) {
-																	alert("Invalid location. Use 'City, State' or 'Washington, DC'.");
-																	return;
-																}
-																await updateJobWithAuth(j.id, { location: raw });
-																setLocationOpen(m => ({ ...m, [j.id]: false }));
-															}}
-														/>
-													) : (
-														<div className="job-location-text">
-															{j.work_mode === "Remote"
-																? "Remote"
-																: `${displayLoc ?? "N/A"} (${String(j.work_mode).toLowerCase()})`}
-														</div>
-													)}
-													<button
-														className="job-location-toggle"
-														aria-expanded={locationIsOpen}
-														onClick={() =>
-															setLocationOpen((m) => ({
-																...m,
-																[j.id]: !m[j.id],
-															}))
-														}
-													>
-														{locationIsOpen ? "Done" : hasLocation ? <EditIcon /> : "Add"}
-													</button>
-												</div>
-											</div>
+                      {/* Location area */}
+                      <div className="text-sm mt-2">
+                        <div className="job-location-container">
+                          {locationIsOpen ? (
+                            <input
+                              className="w-full border rounded px-1 py-1 text-sm"
+                              defaultValue={loc}
+                              placeholder="City, State, Country"
+                              onBlur={async (e) => {
+                                const raw = (e.target.value || "").trim();
+                                if (!raw) {
+                                  await updateJobWithAuth(j.id, { location: undefined });
+                                  setLocationOpen(m => ({ ...m, [j.id]: false }));
+                                  return;
+                                }
+                                if (!isValidLocationInput(raw)) {
+                                  alert("Invalid location. Use 'City, State' or 'Washington, DC'.");
+                                  return;
+                                }
+                                await updateJobWithAuth(j.id, { location: raw });
+                                setLocationOpen(m => ({ ...m, [j.id]: false }));
+                              }}
+                            />
+                          ) : (
+                            <div className="job-location-text">
+                              {j.work_mode === "Remote"
+                                ? "Remote"
+                                : `${displayLoc ?? "N/A"} (${String(j.work_mode).toLowerCase()})`}
+                            </div>
+                          )}
+                          <button
+                            className="job-location-toggle"
+                            aria-expanded={locationIsOpen}
+                            onClick={() =>
+                              setLocationOpen((m) => ({
+                                ...m,
+                                [j.id]: !m[j.id],
+                              }))
+                            }
+                          >
+                            {locationIsOpen ? "Done" : hasLocation ? <EditIcon /> : "Add"}
+                          </button>
+                        </div>
+                      </div>
 
-											<div className="text-sm mt-2">
-												Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
-											</div>
+                      <div className="text-sm mt-2">
+                        Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                      </div>
 
-											<div className="flex items-center gap-4 mt-2 text-sm">
-												<label className="inline-flex items-center gap-2">
-													<input
-														type="checkbox"
-														checked={!!j.rejected}
-														onChange={async (e) =>
-															updateJobWithAuth(j.id, {
-																rejected: e.target.checked,
-															})
-														}
-													/>
-													<span>Rejected</span>
-												</label>
-												<label className="inline-flex items-center gap-2">
-													<input
-														type="checkbox"
-														checked={!!j.ghosted}
-														onChange={async (e) =>
-															updateJobWithAuth(j.id, {
-																ghosted: e.target.checked,
-															})
-														}
-													/>
-													<span>Ghosted</span>
-												</label>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!j.rejected}
+                            onChange={async (e) =>
+                              updateJobWithAuth(j.id, {
+                                rejected: e.target.checked,
+                              })
+                            }
+                          />
+                          <span>Rejected</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!j.ghosted}
+                            onChange={async (e) =>
+                              updateJobWithAuth(j.id, {
+                                ghosted: e.target.checked,
+                              })
+                            }
+                          />
+                          <span>Ghosted</span>
+                        </label>
 
-												{/* Inline status select placed adjacent to Ghosted checkbox */}
-												<select
-													value={j.status}
-													onChange={async (e) => {
-														const v = e.target.value;
-														await updateJobWithAuth(j.id, { status: v as any });
-													}}
-													className="status-select-inline"
-													aria-label="Status"
-												>
-													<option value="Pre-interview">Pre-interview</option>
-													<option value="Interview">Interview</option>
-													<option value="Offer">Offer</option>
-												</select>
-											</div>
-										</div>
-									);
+                        {/* Inline status select placed adjacent to Ghosted checkbox */}
+                        <select
+                          value={j.status}
+                          onChange={async (e) => {
+                            const v = e.target.value;
+                            await updateJobWithAuth(j.id, { status: v as any });
+                          }}
+                          className="status-select-inline"
+                          aria-label="Status"
+                        >
+                          <option value="Pre-interview">Pre-interview</option>
+                          <option value="Interview">Interview</option>
+                          <option value="Offer">Offer</option>
+                        </select>
+                      </div>
+                    </div>
+                  );
                 })}
             </div>
           </div>
         </section>
-      ))}
-      </div>
       </div>
     </div>
   );
