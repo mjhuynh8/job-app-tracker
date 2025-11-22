@@ -1,3 +1,21 @@
+.job-dashboard-container {
+  /* limit width so controls + columns are centered and smaller than full-bleed background */
+  max-width: 1450px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 3rem 0rem; /* adjust for comfortable spacing */
+  box-sizing: border-box;
+}
+
+/* small screens should use full available width with modest padding */
+@media (max-width: 640px) {
+  .job-dashboard-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 .job-dashboard section {
   background: #ffffff;
   border-radius: 0.5rem;
@@ -119,16 +137,33 @@
   border: 1px solid #cbd5e1;
   border-radius: 0.25rem;
   background: #ffffff;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #111827;
-  min-width: 10ch;
   /* align visually with checkboxes */
   height: 32px;
 }
 
-/* ensure it doesn't force wrap awkwardly */
-.job-dashboard .tiles-container .tiles-scroll .status-select-inline {
-  flex-shrink: 0;
+/* make the top-row selects explicitly match the inline status select */
+#date-range-filter,
+#sort-by,
+#sort-order {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: #111827;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+/* ensure consistent small-screen spacing for those top selects (optional but keeps them tidy) */
+@media (max-width: 640px) {
+  #date-range-filter,
+  #sort-by,
+  #sort-order {
+    padding: 0.35rem 0.5rem;
+  }
 }
 
 /* Job tile card */
@@ -210,4 +245,34 @@
     max-width: calc(100% - 56px);
     font-size: 0.95rem;
   }
+}
+
+/* Full-bleed background for the dashboard page */
+.job-dashboard-background {
+  background-image: url("/assets/dashboard-texture.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: #ffffff; /* fallback */
+  box-sizing: border-box;
+
+  /* full-bleed horizontally */
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  margin-left: calc(-50vw + 0px);
+  margin-right: calc(-50vw + 0px);
+
+  /* ensure band covers viewport area between header and footer,
+     and include container paddings so when we offset them the edges align */
+  min-height: calc(100vh - var(--header-height) - var(--footer-height) + var(--container-pt) + var(--container-pb));
+
+  align-items: center;
+  justify-content: center;
+
+  /* remove internal band padding so image edges meet navbar/footer,
+     and offset the parent container's padding so the band touches edges */
+  padding: 0;
+  margin-top: calc(-1 * var(--container-pt));   /* cancel parent top padding (pt-6) */
+  margin-bottom: calc(-1 * var(--container-pb));/* cancel parent bottom padding (p-4) */
 }

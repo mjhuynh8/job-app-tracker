@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
+
 import { useAuth } from "@clerk/clerk-react";
+import { mdiPencilOutline } from '@mdi/js';
 import { mdiTrashCanOutline } from "@mdi/js";
 import { Link } from "react-router";
 
@@ -11,7 +13,13 @@ import { Link } from "react-router";
 const USE_SERVER = false;
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
-
+function EditIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 26 26" fill="currentColor" aria-hidden>
+      <path d={mdiPencilOutline} />
+    </svg>
+  );
+}
 function columnClassForStatus(s: string) {
 	// map to safe css class names
 	switch (s) {
@@ -188,91 +196,92 @@ export default function JobDashboard() {
   };
 
   return (
-    <>
-      <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor="date-range-filter" className="text-sm text-gray-700">
-            Date range:
-          </label>
-          <select
-            id="date-range-filter"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value as any)}
-            className="p-1 border rounded"
-          >
-            <option value="all">All time</option>
-            <option value="week">Past week</option>
-            <option value="month">Past month</option>
-            <option value="3months">Past 3 months</option>
-            <option value="6months">Past 6 months</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort-by" className="text-sm text-gray-700">
-            Sort by:
-          </label>
-          <select
-            id="sort-by"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "date" | "employer" | "title")}
-            className="p-1 border rounded"
-          >
-            <option value="date">Date</option>
-            <option value="employer">Employer</option>
-            <option value="title">Job title</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort-order" className="text-sm text-gray-700">
-            Order:
-          </label>
-          <select
-            id="sort-order"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-            className="p-1 border rounded"
-          >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
-      {statuses.map((s) => (
-        <section key={s} className={`border rounded p-2 flex flex-col ${columnClassForStatus(s)}`}>
-          <header className="flex items-center justify-between job-column-header">
-            <h2 className={`font-semibold ${getStatusColor(s)} job-column-title`}>{s}</h2>
-            <button
-              onClick={() => setOpen(o => ({ ...o, [s]: !o[s] }))}
-              aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
-              aria-expanded={!!open[s]}
-              title={open[s] ? "Collapse" : "Expand"}
+    <div className="job-dashboard-background">
+      <div className="job-dashboard-container">
+        <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
+          <div className="flex items-center gap-2">
+            <label htmlFor="date-range-filter" className="text-sm text-white">
+              Date range:
+            </label>
+            <select
+              id="date-range-filter"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as any)}
+              className="p-1 border rounded"
             >
-              {open[s] ? "▾" : "▸"}
-            </button>
-          </header>
-          <div
-            className="mt-2 tiles-container"
-            ref={(el) => {
-              containerRefs.current[s] = el;
-            }}
-            aria-hidden={!open[s]}
-          >
+              <option value="all">All time</option>
+              <option value="week">Past week</option>
+              <option value="month">Past month</option>
+              <option value="3months">Past 3 months</option>
+              <option value="6months">Past 6 months</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort-by" className="text-sm text-white">
+              Sort by:
+            </label>
+            <select
+              id="sort-by"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "date" | "employer" | "title")}
+              className="p-1 border rounded"
+            >
+              <option value="date">Date</option>
+              <option value="employer">Employer</option>
+              <option value="title">Job title</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort-order" className="text-sm text-white">
+              Order:
+            </label>
+            <select
+              id="sort-order"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+              className="p-1 border rounded bg-white"
+            >
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
+        {statuses.map((s) => (
+          <section key={s} className={`border rounded p-2 flex flex-col ${columnClassForStatus(s)}`}>
+            <header className="flex items-center justify-between job-column-header">
+              <h2 className={`font-semibold ${getStatusColor(s)} job-column-title`}>{s}</h2>
+              <button
+                onClick={() => setOpen(o => ({ ...o, [s]: !o[s] }))}
+                aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
+                aria-expanded={!!open[s]}
+                title={open[s] ? "Collapse" : "Expand"}
+              >
+                {open[s] ? "▾" : "▸"}
+              </button>
+            </header>
             <div
-              className="tiles-scroll"
-              role="region"
-              aria-labelledby={`col-${s}`}
+              className="mt-2 tiles-container"
+              ref={(el) => {
+                containerRefs.current[s] = el;
+              }}
+              aria-hidden={!open[s]}
             >
-              {jobs
-                .filter(j => inColumn(s, j))
-                .filter(passesDateFilter)
-                .sort(compareJobs)
-                .map((j) => {
-                  const loc = j.location || "";
-                  const displayLoc = formatLocationForDisplay(j.location || "");
-                  const locationIsOpen = !!locationOpen[j.id];
-                  const hasLocation = !!displayLoc;
-                  return (
+              <div
+                className="tiles-scroll"
+                role="region"
+                aria-labelledby={`col-${s}`}
+              >
+                {jobs
+                  .filter(j => inColumn(s, j))
+                  .filter(passesDateFilter)
+                  .sort(compareJobs)
+                  .map((j) => {
+                    const loc = j.location || "";
+                    const displayLoc = formatLocationForDisplay(j.location || "");
+                    const locationIsOpen = !!locationOpen[j.id];
+                    const hasLocation = !!displayLoc;
+                    return (
 										<div key={j.id} className="job-tile">
 											<div className="flex items-center justify-between">
 												<div>
@@ -352,7 +361,7 @@ export default function JobDashboard() {
 															}))
 														}
 													>
-														{locationIsOpen ? "Done" : hasLocation ? "Edit" : "Add"}
+														{locationIsOpen ? "Done" : hasLocation ? <EditIcon /> : "Add"}
 													</button>
 												</div>
 											</div>
@@ -410,6 +419,7 @@ export default function JobDashboard() {
         </section>
       ))}
       </div>
-    </>
+      </div>
+    </div>
   );
 }
