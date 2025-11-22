@@ -10,8 +10,9 @@ export type Job = {
   employer: string;
   job_date?: string; // ISO date string
   status: "Pre-interview" | "Interview" | "Offer";
-  skills: string; // comma-separated string per schema
-  description?: string;
+  work_mode: "In-person" | "Hybrid" | "Remote"; // required
+  location?: string; // optional free-text "City, State, Country"
+  notes?: string; // optional notes field
   rejected?: boolean;
   ghosted?: boolean;
 };
@@ -46,6 +47,19 @@ export function JobProvider({ children }: { children: any }) {
   }, [jobs]);
   */
 
+  // Normalize/cleanup location string:
+  function normalizeLocation(input?: string) {
+    if (!input) return undefined;
+    const s = input.trim();
+    if (!s) return undefined;
+    if (/^washington\s*,?\s*dc$/i.test(s)) return "Washington, DC, United States";
+    const parts = s.split(",").map(p => p.trim()).filter(Boolean);
+    const [city = "", stateRaw = "", countryRaw = ""] = parts;
+    const state = stateRaw && stateRaw.length <= 3 ? stateRaw.toUpperCase() : stateRaw;
+    const country = countryRaw || "United States";
+    return [city, state, country].filter(Boolean).join(", ");
+  }
+
   // Load stored jobs on client after mount and normalize shape.
   // For server-backed mode we do NOT auto-load localStorage on mount.
   // Use loadFromServer(token) to populate jobs for authenticated users.
@@ -68,9 +82,9 @@ export function JobProvider({ children }: { children: any }) {
         status: (["Pre-interview", "Interview", "Offer"].includes(j.status)
           ? j.status
           : "Pre-interview") as Job["status"],
-        skills: typeof j.skills === "string" ? j.skills : "",
-        description:
-          typeof j.description === "string" ? j.description : undefined,
+        work_mode: (["In-person", "Hybrid", "Remote"].includes(j.work_mode) ? j.work_mode : "In-person") as Job["work_mode"],
+        location: normalizeLocation(typeof j.location === "string" ? j.location : undefined),
+        notes: typeof j.notes === "string" ? j.notes : undefined,
         rejected: !!j.rejected,
         ghosted: !!j.ghosted,
       }));
@@ -82,18 +96,8 @@ export function JobProvider({ children }: { children: any }) {
 
   function toISO(d: any): string | undefined {
     if (!d) return undefined;
-    if (typeof d === "string") {
-      const t = Date.parse(d);
-      return isNaN(t) ? undefined : new Date(t).toISOString();
-    }
-    if (d instanceof Date) {
-      return isNaN(d.getTime()) ? undefined : d.toISOString();
-    }
-    if (typeof d === "number") {
-      const dt = new Date(d);
-      return isNaN(dt.getTime()) ? undefined : dt.toISOString();
-    }
-    return undefined;
+    const date = typeof d === "string" || typeof d === "number" ? new Date(d) : d instanceof Date ? d : null;
+    return date && !isNaN(date.getTime()) ? date.toISOString() : undefined;
   }
 
   // New: load jobs from server for a given Clerk token (expects serverless endpoint)
@@ -124,8 +128,9 @@ export function JobProvider({ children }: { children: any }) {
         employer: String(j.employer ?? ""),
         job_date: typeof j.job_date === "string" ? j.job_date : j.job_date ? new Date(j.job_date).toISOString() : undefined,
         status: (["Pre-interview", "Interview", "Offer"].includes(j.status) ? j.status : "Pre-interview") as Job["status"],
-        skills: typeof j.skills === "string" ? j.skills : "",
-        description: typeof j.description === "string" ? j.description : undefined,
+        work_mode: (["In-person", "Hybrid", "Remote"].includes(j.work_mode) ? j.work_mode : "In-person") as Job["work_mode"],
+        location: normalizeLocation(typeof j.location === "string" ? j.location : undefined),
+        notes: typeof j.notes === "string" ? j.notes : undefined,
         rejected: !!j.rejected,
         ghosted: !!j.ghosted,
       }));
@@ -145,8 +150,9 @@ export function JobProvider({ children }: { children: any }) {
       status: ["Pre-interview", "Interview", "Offer"].includes(j.status)
         ? j.status
         : "Pre-interview",
-      skills: typeof j.skills === "string" ? j.skills : "",
-      description: j.description,
+      work_mode: (["In-person", "Hybrid", "Remote"].includes(j.work_mode) ? j.work_mode : "In-person") as Job["work_mode"],
+      location: normalizeLocation(j.location),
+      notes: j.notes,
       rejected: !!j.rejected,
       ghosted: !!j.ghosted,
     };
@@ -175,8 +181,9 @@ export function JobProvider({ children }: { children: any }) {
           employer: normalized.employer,
           job_date: normalized.job_date,
           status: normalized.status,
-          skills: normalized.skills,
-          description: normalized.description,
+          work_mode: normalized.work_mode,
+          location: normalized.location,
+          notes: normalized.notes,
         }),
       })
         .then((r) => r.json())
@@ -189,83 +196,78 @@ export function JobProvider({ children }: { children: any }) {
   }
 
   function updateJob(id: string, patch: Partial<Job>, token?: string) {
-    setJobs((s) =>
-      s.map((jj) => {
-        if (jj.id !== id) return jj;
-        const merged: Job = {
-          ...jj,
-          ...patch,
-          job_date: toISO(patch.job_date) ?? jj.job_date,
-          skills: typeof patch.skills === "string" ? patch.skills : jj.skills,
-          status:
-            patch.status &&
-            ["Pre-interview", "Interview", "Offer"].includes(String(patch.status))
-              ? (patch.status as Job["status"])
-              : jj.status,
-          rejected: patch.rejected ?? jj.rejected,
-          ghosted: patch.ghosted ?? jj.ghosted,
-        };
-        if (patch.ghosted === true) merged.rejected = true;
-        return merged;
-      })
+    setJobs(s =>
+      s.map(j =>
+        j.id === id
+          ? {
+              ...j,
+              ...patch,
+              job_date: toISO(patch.job_date) ?? j.job_date,
+              work_mode: patch.work_mode && ["In-person", "Hybrid", "Remote"].includes(patch.work_mode)
+                ? patch.work_mode
+                : j.work_mode,
+              location: patch.location ? normalizeLocation(patch.location) : j.location,
+              rejected: patch.rejected !== undefined ? !!patch.rejected : j.rejected,
+              ghosted: patch.ghosted !== undefined ? !!patch.ghosted : j.ghosted,
+            }
+          : j
+      )
     );
-
-    // persist updated local state to localStorage for local dev
     try {
-      const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
-      const updated = stored.map((x) => (x.id === id ? { ...x, ...patch } : x));
-      localStorage.setItem("jobs", JSON.stringify(updated));
-    } catch (e) {}
-
-    // Persist change to server if token provided and server enabled
-    if (USE_SERVER && token) {
+      const stored = JSON.parse(localStorage.getItem("jobs") || "[]");
+      localStorage.setItem(
+        "jobs",
+        JSON.stringify(
+          stored.map((x: any) =>
+            x.id === id
+              ? {
+                  ...x,
+                  ...patch,
+                  rejected: patch.rejected !== undefined ? !!patch.rejected : x.rejected,
+                  ghosted: patch.ghosted !== undefined ? !!patch.ghosted : x.ghosted,
+                }
+              : x
+          )
+        )
+      );
+    } catch {}
+    if (USE_SERVER && token)
       fetch("/.netlify/functions/jobs-update", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        // include token in body as a fallback in case Authorization header is stripped
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ id, patch, token }),
-      }).catch((err) => console.warn("updateJob server error", err));
-    }
+      }).catch(err => console.warn("updateJob server error", err));
   }
 
   function deleteJob(id: string, token?: string) {
-    setJobs((s) => s.filter((j) => j.id !== id));
+    setJobs((s) => s.filter((jj) => jj.id !== id));
 
-    // persist deletion to localStorage for local dev
+    // Persist to localStorage for local dev
     try {
       const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
       const updated = stored.filter((x) => x.id !== id);
       localStorage.setItem("jobs", JSON.stringify(updated));
     } catch (e) {}
 
-    if (token) {
-      if (USE_SERVER) {
-        fetch("/.netlify/functions/jobs-delete", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          // include token in body as a fallback in case Authorization header is stripped
-          body: JSON.stringify({ id, token }),
-        }).catch((err) => console.warn("deleteJob server error", err));
-      }
+    // Persist change to server if token provided and server enabled
+    if (USE_SERVER && token) {
+      fetch("/.netlify/functions/jobs-delete", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, token }),
+      }).catch((err) => console.warn("deleteJob server error", err));
     }
   }
 
-  return (
-    <ctx.Provider value={{ jobs, addJob, updateJob, deleteJob, loadFromServer }}>
-      {children}
-    </ctx.Provider>
-  );
+  const value = { jobs, addJob, updateJob, deleteJob, loadFromServer };
+  return <ctx.Provider value={value}>{children}</ctx.Provider>;
 }
 
 export function useJobs() {
-  const v = useContext(ctx);
-  console.log("useJobs context value:", v);
-  if (!v) throw new Error("Missing JobProvider");
-  return v;
+  const c = useContext(ctx);
+  if (!c) throw new Error("useJobs must be used within a JobProvider");
+  return c;
 }

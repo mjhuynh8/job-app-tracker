@@ -10,6 +10,7 @@ export default [
 
     route("job-form", "routes/job-form.tsx"),
     route("job-dashboard", "routes/job-dashboard.tsx"),
+    route("job-view/:id", "routes/job-view.tsx"),
     // sign‐in/up
     route("sign-in/*", "routes/sign-in.tsx"),
     route("sign-up/*", "routes/sign-up.tsx"),

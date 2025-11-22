@@ -81,3 +81,133 @@
 .job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Combined location + work mode display */
+.job-location-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.job-location-text {
+  color: #374151; /* gray-700 */
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Toggle button for inline edit (visually similar to previous) */
+.job-location-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 13px;
+  color: #6b7280; /* gray-500 */
+}
+
+/* Input styling already present; ensure it fits the container */
+.job-location-container input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.status-select-inline {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #111827;
+  min-width: 10ch;
+  /* align visually with checkboxes */
+  height: 32px;
+}
+
+/* ensure it doesn't force wrap awkwardly */
+.job-dashboard .tiles-container .tiles-scroll .status-select-inline {
+  flex-shrink: 0;
+}
+
+/* Job tile card */
+.job-tile {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+}
+
+/* Slight lift on hover for affordance */
+.job-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+}
+
+/* Column-specific light backgrounds (match header colors but subtle) */
+.col-pre-interview .job-tile {
+  background: #f3f4f6; /* gray-100 (soft neutral) */
+  border-color: rgba(15,23,42,0.06);
+}
+.col-interview .job-tile {
+  background: #fffbeb; /* amber-50 / pale yellow */
+  border-color: rgba(133,77,14,0.08);
+}
+.col-offer .job-tile {
+  background: #ecfdf5; /* emerald-50 / pale green */
+  border-color: rgba(6,95,70,0.06);
+}
+.col-rejected .job-tile {
+  background: #fff1f2; /* rose-50 / pale red */
+  border-color: rgba(127,29,29,0.06);
+}
+
+/* Ensure inner text contrasts well */
+.col-pre-interview .job-tile .font-semibold,
+.col-interview .job-tile .font-semibold,
+.col-offer .job-tile .font-semibold,
+.col-rejected .job-tile .font-semibold {
+  color: #061426; /* near-black for headings */
+}
+
+/* Ensure small spacing inside tile content still looks good */
+.job-tile .text-sm {
+  color: #475569; /* slate-600 for details */
+}
+
+/* Prevent the previous border-b rule from creating an extra line */
+/* If any leftover border-bottoms remain on job-tile children, hide them */
+.job-tile > .border-b {
+  border-bottom: none;
+}
+
+.job-column-header {
+  position: relative;
+}
+
+/* Center the column title while leaving the button in normal flow */
+.job-column-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* leave room for the right-side button so title doesn't overlap it */
+  max-width: calc(100% - 88px);
+  font-weight: 600;
+}
+
+/* Responsive: reduce max-width a bit on very narrow screens */
+@media (max-width: 420px) {
+  .job-column-title {
+    max-width: calc(100% - 56px);
+    font-size: 0.95rem;
+  }
+}

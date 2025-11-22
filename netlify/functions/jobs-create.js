@@ -162,170 +162,78 @@ exports.handler = async function (event, context) {
     // WARNING: This is an UNVERIFIED fallback for convenience/debugging only.
     // Do NOT rely on this for production-level auth — configure CLERK_SECRET_KEY
     // in Netlify environment and prefer getAuth.
-    if (!userId && token) {
+    if (!userId && token && token.split(".").length >= 2) {
       try {
-        const parts = token.split(".");
-        if (parts.length >= 2) {
-          // base64url -> base64
-          const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-          const decoded = Buffer.from(b64, "base64").toString("utf8");
-          const claims = JSON.parse(decoded);
-          const candidate = claims.sub || claims.user_id || claims.userId || claims.uid || null;
-          if (candidate) {
-            userId = String(candidate);
-            console.warn("jobs-create: using UNVERIFIED token payload fallback for userId. Configure CLERK_SECRET_KEY in Netlify to enable server-side verification.");
-          }
+        const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString("utf8"));
+        const candidate = claims.sub || claims.user_id || claims.userId || claims.uid;
+        if (candidate) {
+          userId = candidate;
+          console.log("jobs-create userId extracted from token (UNVERIFIED):", userId);
         }
-      } catch (decodeErr) {
-        console.warn("jobs-create JWT decode fallback failed (non-fatal):", decodeErr);
+      } catch (jwtErr) {
+        console.warn("jobs-create JWT decoding failed", jwtErr);
       }
     }
 
-    // If we still don't have a userId, return 401 and an actionable hint.
+    // At this point, we should have a userId from Clerk or from the token.
+    // If no userId can be determined, reject the request.
     if (!userId) {
       return {
         statusCode: 401,
         headers,
-        body: JSON.stringify({
-          error: "Unauthorized",
-          hint:
-            "No valid Clerk session found. Ensure the Authorization: Bearer <token> header reaches this function and that your Clerk server key (e.g. CLERK_SECRET_KEY / CLERK_API_KEY) is configured in Netlify environment variables. As a temporary measure this function can decode the token payload client-side as a fallback, but server-side verification requires the Clerk secret key in env.",
-        }),
+        body: JSON.stringify({ error: "Unauthorized" }),
       };
     }
 
-    // Basic validation of required fields that your client sends
-    const { job_title, employer, job_date, status, skills, description } = payload || {};
-    // required per collection validator: userid, job_title, employer, job_date, status
-    if (!job_title || !employer || !status || !job_date) {
+    const { job_title, employer, job_date, status, work_mode, location, notes } = payload || {};
+
+    // Basic validation
+    if (!job_title || !employer || !job_date || !status || !work_mode) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "Missing required fields (job_title, employer, job_date, status required)" }),
-      };
-    }
-    // enforce allowed status values server-side
-    const allowedStatuses = ["Pre-interview", "Interview", "Offer"];
-    if (!allowedStatuses.includes(status)) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Invalid status", allowed: allowedStatuses }),
-      };
-    }
-    // parse job_date into a Date (validator expects BSON date)
-    let parsedJobDate;
-    try {
-      parsedJobDate = new Date(job_date);
-      if (isNaN(parsedJobDate.getTime())) {
-        throw new Error("invalid date");
-      }
-    } catch {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Invalid job_date; expected an ISO date string" }),
+        body: JSON.stringify({ error: "Missing required fields" }),
       };
     }
 
-    // Prepare a document for insertion that matches expected BSON types.
-    // Do NOT include a custom `id` field here (some validators disallow it).
-    // Convert job_date to a real Date object when possible.
-    const docToInsert = {
-      // use the exact field name your validator requires
-      userid: String(userId),
-      // keep other optional compat fields if you like (not required)
-      userId: String(userId),
-      job_title: String(job_title),
-      employer: String(employer),
-      status: String(status),
-      skills: typeof skills === "string" ? skills : "",
-      description: typeof description === "string" ? description : "",
+    // Create a new job application document
+    const newDoc = {
+      userid: userId,
+      job_title,
+      employer,
+      job_date: new Date(job_date),
+      status,
+      work_mode,
+      location: location || undefined,
+      notes: notes || undefined,
       rejected: false,
       ghosted: false,
       createdAt: new Date(),
     };
 
-    // we already parsed and validated job_date above
-    docToInsert.job_date = parsedJobDate;
-
-    // Persist to MongoDB if MONGODB_URI is configured.
-    // If you are running on Netlify make sure MONGODB_URI is set in Site > Build & deploy > Environment.
+    // Insert the new document into the "jobs" collection
+    let result;
     try {
-      if (!process.env.MONGODB_URI) {
-        console.warn("jobs-create: MONGODB_URI not set; skipping DB persist");
-        // Return 500 so this is loud in production; adjust if you'd prefer to accept without DB.
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            error: "Server misconfiguration",
-            hint: "MONGODB_URI is not configured in environment variables.",
-          }),
-        };
-      }
-
-      const database = await connect();
-      // Log what database/collection we will write to (helps diagnose 'local.oplog.rs' issues)
-      console.log("jobs-create: database before insert:", database.databaseName);
-      const coll = database.collection("jobs");
-      console.log("jobs-create: target collection namespace:", `${database.databaseName}.${coll.collectionName}`);
-      const insertRes = await coll.insertOne(docToInsert);
-      // Build the saved object to return to the client (includes insertedId)
-      const saved = {
-        id: insertRes.insertedId?.toString?.() ?? String(insertRes.insertedId),
-        _id: insertRes.insertedId,
-        userid: docToInsert.userid,
-        userId: docToInsert.userId,
-        job_title: docToInsert.job_title,
-        employer: docToInsert.employer,
-        job_date: docToInsert.job_date.toISOString(),
-        status: docToInsert.status,
-        skills: docToInsert.skills,
-        description: docToInsert.description,
-        rejected: docToInsert.rejected,
-        ghosted: docToInsert.ghosted,
-        createdAt: docToInsert.createdAt.toISOString(),
-      };
-      console.log("jobs-create: inserted job id:", saved.id, "namespace:", `${database.databaseName}.${coll.collectionName}`);
+      const db = await connect();
+      result = await db.collection("jobs").insertOne(newDoc);
+      console.log("jobs-create: inserted document into MongoDB:", result.insertedId);
     } catch (dbErr) {
-      console.error("jobs-create: MongoDB operation failed:", dbErr);
-      // If connect() timed out or server selection failed, surface a 502 with actionable hint.
-      const msg = String(dbErr || "");
-      if (msg.includes("timed out") || msg.includes("failed to connect") || dbErr.name === "MongoServerSelectionError") {
-        return {
-          statusCode: 502,
-          headers,
-          body: JSON.stringify({
-            error: "Bad Gateway",
-            hint:
-              "Unable to reach MongoDB within the configured timeout. Check MONGODB_URI, Atlas/network IP access, and that your DB allows connections from Netlify.",
-            detail: String(dbErr.message || dbErr),
-          }),
-        };
-      }
-
+      console.error("jobs-create: MongoDB insertOne() failed:", dbErr);
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: "Failed to persist job", detail: String(dbErr) }),
+        body: JSON.stringify({ error: "Internal Server Error" }),
       };
     }
 
+    // Successful response
     return {
-      statusCode: 200,
+      statusCode: 201,
       headers,
-      body: JSON.stringify(
-        // return the saved record we built after insert
-        (typeof saved !== "undefined" && saved) || {
-          // fallback: include docToInsert if something unexpected happened
-          ...docToInsert,
-          id: undefined,
-        }
-      ),
+      body: JSON.stringify({ id: result.insertedId, ...newDoc }),
     };
   } catch (err) {
-    console.error("jobs-create error:", err);
+    console.error("jobs-create handler error:", err);
     return {
       statusCode: 500,
       headers,

@@ -33,3 +33,7 @@ npm run build
 ## Deployment
 
 Access the app at https://sunny-griffin-4dacbb.netlify.app/
+
+## New
+
+Job detail editing page: /job-view/:id for viewing and resubmitting changes.

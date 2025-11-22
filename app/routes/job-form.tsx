@@ -9,15 +9,16 @@ import { useAuth } from "@clerk/clerk-react";
 const USE_SERVER = false;
 
 export default function JobForm() {
-  const { getToken } = useAuth(); // ← top-level hook
+  const { getToken } = useAuth();
   const { jobs, addJob } = useJobs();
   type JobStatus = "Pre-interview" | "Interview" | "Offer";
   const [title, setTitle] = useState("");
   const [employer, setEmployer] = useState("");
-  const [skills, setSkills] = useState("");
+  const [location, setLocation] = useState("");
   const [status, setStatus] = useState<JobStatus | "">("");
   const [dateApplied, setDateApplied] = useState("");
-  const [description, setDescription] = useState("");
+  const [workMode, setWorkMode] = useState<"In-person" | "Hybrid" | "Remote" | "">("");
+  const [notes, setNotes] = useState("");
   const [submittedMsg, setSubmittedMsg] = useState("");
 
   function isValidDate(dateStr: string): boolean {
@@ -39,10 +40,10 @@ export default function JobForm() {
         return;
       }
       if (
-        !status ||
-        !["Pre-interview", "Interview", "Offer"].includes(status)
+        !workMode ||
+        !["In-person", "Hybrid", "Remote"].includes(workMode)
       ) {
-        alert("Status must be one of: Pre-interview, Interview, Offer.");
+        alert("Work mode must be one of: In-person, Hybrid, Remote.");
         return;
       }
       if (!dateApplied || !isValidDate(dateApplied)) {
@@ -55,12 +56,9 @@ export default function JobForm() {
         employer: employer.trim(),
         job_date: new Date(dateApplied).toISOString(),
         status,
-        skills: skills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .join(", "),
-        description: description.trim(),
+        work_mode: workMode,
+        location: location.trim() || undefined,
+        notes: notes.trim() || undefined,
       };
 
       if (USE_SERVER) {
@@ -94,12 +92,12 @@ export default function JobForm() {
                   : new Date(savedJob.job_date).toISOString()
                 : undefined,
               status: savedJob.status,
-              skills: typeof savedJob.skills === "string" ? savedJob.skills : "",
-              description: savedJob.description,
+              work_mode: savedJob.work_mode ?? "In-person",
+              location: savedJob.location ?? undefined,
               rejected: !!savedJob.rejected,
               ghosted: !!savedJob.ghosted,
             };
-            addJob(normalized);
+            addJob(normalized as any);
           } else {
             addJob(jobData as any);
           }
@@ -115,10 +113,11 @@ export default function JobForm() {
       // reset form
       setTitle("");
       setEmployer("");
-      setSkills("");
+      setLocation("");
       setDateApplied("");
-      setDescription("");
+      setWorkMode("");
       setStatus("");
+      setNotes("");
       setSubmittedMsg("Job added! Go check it out on your Dashboard!");
       setTimeout(() => setSubmittedMsg(""), 4000);
     } catch (err) {
@@ -126,6 +125,7 @@ export default function JobForm() {
       alert("Failed to save job. See console for details.");
     }
   }
+
   return (
     <div className="job-form-background">
       <div className="max-w-xl mx-auto job-form-page">
@@ -143,7 +143,6 @@ export default function JobForm() {
             className="w-full p-2 border rounded"
             required
           />
-          {/* employer input (replaces company) */}
           <input
             value={employer}
             onChange={(e) => setEmployer(e.target.value)}
@@ -151,44 +150,63 @@ export default function JobForm() {
             className="w-full p-2 border rounded"
             required
           />
-          <input
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            placeholder="Skills (comma separated)"
-            className="w-full p-2 border rounded"
-          />
-          {/* description (larger, resizable textarea) */}
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description"
-            rows={5}
-            className="w-full p-2 border rounded description-textarea"
-            aria-label="Job description"
-          />
+
           <input
             type="text"
-            onFocus={(e) => (e.target.type = "date")}
-            onBlur={(e) => !e.target.value && (e.target.type = "text")}
-            value={dateApplied}
-            onChange={(e) => setDateApplied(e.target.value)}
-            className="w-full p-2 border rounded text-gray-700"
-            placeholder="Date Applied*"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Location (optional) — City, State, Country"
+            className="location-input w-full p-2 border rounded"
           />
-          {/* status options now match DB enum */}
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as JobStatus)}
-            className="w-full p-2 border rounded text-gray-700"
-            required
-          >
-            <option value="" disabled>
-              Status*
-            </option>
-            <option value="Pre-interview">Pre-interview</option>
-            <option value="Interview">Interview</option>
-            <option value="Offer">Offer</option>
-          </select>
+
+          <div className="bottom-row">
+            <select
+              value={workMode}
+              onChange={(e) => setWorkMode(e.target.value as any)}
+              className="workmode-select"
+              required
+            >
+              <option value="" disabled>
+                Work mode*
+              </option>
+              <option value="In-person">In-person</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Remote">Remote</option>
+            </select>
+
+            <input
+              type="text"
+              onFocus={(e) => (e.target.type = "date")}
+              onBlur={(e) => !e.target.value && (e.target.type = "text")}
+              value={dateApplied}
+              onChange={(e) => setDateApplied(e.target.value)}
+              className="date-input"
+              placeholder="Date Applied*"
+              required
+            />
+
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as JobStatus)}
+              className="status-select"
+              required
+            >
+              <option value="" disabled>
+                Status*
+              </option>
+              <option value="Pre-interview">Pre-interview</option>
+              <option value="Interview">Interview</option>
+              <option value="Offer">Offer</option>
+            </select>
+          </div>
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notes (optional) — Any additional info, links, contacts, etc."
+            className="notes-textarea w-full p-2 border rounded"
+          />
+
           <button
             className="add-job-btn"
             type="submit"

@@ -1,15 +1,32 @@
-// "use client";  <-- commented so local-only mode can be restored easily
+"use client"; // <-- uncommented to enable client component features like hooks
 
 import { useState, useRef, useEffect } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 import { useAuth } from "@clerk/clerk-react";
 import { mdiTrashCanOutline } from "@mdi/js";
+import { Link } from "react-router";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
 const USE_SERVER = false;
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
+
+function columnClassForStatus(s: string) {
+	// map to safe css class names
+	switch (s) {
+		case "Pre-interview":
+			return "col-pre-interview";
+		case "Interview":
+			return "col-interview";
+		case "Offer":
+			return "col-offer";
+		case "Rejected":
+			return "col-rejected";
+		default:
+			return "";
+	}
+}
 
 export default function JobDashboard() {
   const { jobs, updateJob, deleteJob, loadFromServer } = useJobs();
@@ -21,61 +38,74 @@ export default function JobDashboard() {
       {} as Record<string, boolean>
     )
   );
-  const [descOpen, setDescOpen] = useState<Record<string, boolean>>({});
-  const [skillsOpen, setSkillsOpen] = useState<Record<string, boolean>>({});
+  const [locationOpen, setLocationOpen] = useState<Record<string, boolean>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [sortBy, setSortBy] = useState<"date" | "employer" | "title">("date");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
 
-  // Helper to get cutoff date for range filters
-  const getCutoffDate = (range: "week" | "month" | "3months" | "6months") => {
-    const now = new Date();
-    switch (range) {
-      case "week":
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      case "month":
-        return new Date(now.setMonth(now.getMonth() - 1));
-      case "3months":
-        return new Date(now.setMonth(now.getMonth() - 3));
-      case "6months":
-        return new Date(now.setMonth(now.getMonth() - 6));
-      default:
-        return null;
-    }
-  };
+  // Compact range lookup (approx months -> days)
+  const RANGE_DAYS: Record<string, number> = { week: 7, month: 30, "3months": 90, "6months": 180 };
 
-  // Filter helpers
-  const passesDateFilter = (j: any) => {
+  // Condensed date filter
+  function passesDateFilter(j: any) {
     if (dateFilter === "all") return true;
-    const cutoff = getCutoffDate(dateFilter);
-    if (!cutoff || !j.job_date) return false;
-    return new Date(j.job_date) >= cutoff;
-  };
+    if (!j.job_date) return false;
+    const days = RANGE_DAYS[dateFilter];
+    if (!days) return true;
+    return new Date(j.job_date) >= new Date(Date.now() - days * 864e5);
+  }
 
-  const compareJobs = (a: any, b: any) => {
-    switch (sortBy) {
-      case "date": {
-        const ta = a?.job_date ? new Date(a.job_date).getTime() : null;
-        const tb = b?.job_date ? new Date(b.job_date).getTime() : null;
-        if (ta === null && tb === null) return 0;
-        if (ta === null) return 1;
-        if (tb === null) return -1;
-        return sortOrder === "desc" ? tb - ta : ta - tb;
-      }
-      case "employer": {
-        const ea = (a.employer || "").toLowerCase();
-        const eb = (b.employer || "").toLowerCase();
-        return sortOrder === "desc" ? eb.localeCompare(ea) : ea.localeCompare(eb);
-      }
-      case "title": {
-        const ta = (a.job_title || "").toLowerCase();
-        const tb = (b.job_title || "").toLowerCase();
-        return sortOrder === "desc" ? tb.localeCompare(ta) : ta.localeCompare(tb);
-      }
-      default:
-        return 0;
+  // Unified compare function
+  function compareJobs(a: any, b: any) {
+    if (sortBy === "date") {
+      const ta = a.job_date ? Date.parse(a.job_date) : -Infinity;
+      const tb = b.job_date ? Date.parse(b.job_date) : -Infinity;
+      return sortOrder === "desc" ? tb - ta : ta - tb;
     }
-  };
+    const fa = (a[sortBy === "employer" ? "employer" : "job_title"] || "").toLowerCase();
+    const fb = (b[sortBy === "employer" ? "employer" : "job_title"] || "").toLowerCase();
+    return sortOrder === "desc" ? fb.localeCompare(fa) : fa.localeCompare(fb);
+  }
+
+  // Condensed location formatter
+  function formatLocationForDisplay(raw?: string | null) {
+    if (!raw) return null;
+    const parts = raw.split(",").map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return null;
+    const isDC = /^washington\s*,?\s*dc$/i.test(raw);
+    if (isDC) return "Washington, DC";
+    const isUS = parts.length < 3 || /^(united\s*states|us|usa)$/i.test(parts.at(-1)!);
+    const [city, state, country] = parts;
+    if (isUS) {
+      if (state) return `${toTitleCase(city)}, ${state.toUpperCase()}`;
+      return toTitleCase(city);
+    }
+    return parts.join(", ");
+  }
+  function toTitleCase(s: string) {
+    return s
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => w[0].toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  // Simplified column filter logic
+  function inColumn(col: string, j: any) {
+    const rejectedBucket = j.rejected || j.ghosted;
+    return col === "Rejected" ? rejectedBucket : !rejectedBucket && j.status === col;
+  }
+
+  // Location input validator (unchanged logic, shorter)
+  function isValidLocationInput(input?: string | null) {
+    if (!input) return true;
+    const s = input.trim();
+    if (!s) return false;
+    if (/^washington\s*,?\s*dc$/i.test(s)) return true;
+    const parts = s.split(",").map(p => p.trim()).filter(Boolean);
+    return parts.length >= 2;
+  }
 
   // Update only the toggled column's maxHeight
   useEffect(() => {
@@ -104,7 +134,7 @@ export default function JobDashboard() {
       try {
         const token = await getToken();
         if (token && mounted && loadFromServer) {
-          await loadFromServer(token);
+          await loadFromServer(token ?? undefined);
         }
       } catch (err) {
         console.warn("job-dashboard: loadFromServer failed", err);
@@ -124,7 +154,7 @@ export default function JobDashboard() {
     }
     try {
       const token = await getToken();
-      updateJob(id, patch, token);
+      updateJob(id, patch, token ?? undefined);
     } catch (err) {
       console.warn(
         "updateJobWithAuth: failed to get token, applying local update only",
@@ -141,7 +171,7 @@ export default function JobDashboard() {
     }
     try {
       const token = await getToken();
-      deleteJob(id, token);
+      deleteJob(id, token ?? undefined);
     } catch (err) {
       console.warn(
         "deleteJobWithAuth: failed to get token, deleting locally",
@@ -202,21 +232,19 @@ export default function JobDashboard() {
             onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
             className="p-1 border rounded"
           >
-            <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
           </select>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 job-dashboard">
       {statuses.map((s) => (
-        <section key={s} className="border rounded p-2 flex flex-col">
-          <header className="flex items-center justify-between">
-            <h2 className={`font-semibold ${getStatusColor(s)}`}>{s}</h2>
+        <section key={s} className={`border rounded p-2 flex flex-col ${columnClassForStatus(s)}`}>
+          <header className="flex items-center justify-between job-column-header">
+            <h2 className={`font-semibold ${getStatusColor(s)} job-column-title`}>{s}</h2>
             <button
-              onClick={() => setOpen((o) => ({ ...o, [s]: !o[s] }))}
-              aria-label={
-                open[s] ? `Collapse ${s} column` : `Expand ${s} column`
-              }
+              onClick={() => setOpen(o => ({ ...o, [s]: !o[s] }))}
+              aria-label={open[s] ? `Collapse ${s} column` : `Expand ${s} column`}
               aria-expanded={!!open[s]}
               title={open[s] ? "Collapse" : "Expand"}
             >
@@ -225,7 +253,9 @@ export default function JobDashboard() {
           </header>
           <div
             className="mt-2 tiles-container"
-            ref={(el) => (containerRefs.current[s] = el)}
+            ref={(el) => {
+              containerRefs.current[s] = el;
+            }}
             aria-hidden={!open[s]}
           >
             <div
@@ -234,193 +264,146 @@ export default function JobDashboard() {
               aria-labelledby={`col-${s}`}
             >
               {jobs
-                .filter((j) =>
-                  s === "Rejected"
-                    ? !!j.rejected
-                    : !j.rejected && j.status === s
-                )
+                .filter(j => inColumn(s, j))
                 .filter(passesDateFilter)
-                .slice()
                 .sort(compareJobs)
                 .map((j) => {
-                  const skills = j.skills || "";
-                  const fullDesc = j.description ?? "";
-                  const descNeedsToggle = fullDesc.length > 120;
-                  const descIsOpen = !!descOpen[j.id];
-                  const skillsIsOpen = !!skillsOpen[j.id];
-                  const hasDesc = fullDesc.length > 0;
-                  const descPreview =
-                    descNeedsToggle && !descIsOpen
-                      ? fullDesc.slice(0, 120) + "…"
-                      : fullDesc;
+                  const loc = j.location || "";
+                  const displayLoc = formatLocationForDisplay(j.location || "");
+                  const locationIsOpen = !!locationOpen[j.id];
+                  const hasLocation = !!displayLoc;
                   return (
-                    <div key={j.id} className="p-2 border-b">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold">{j.job_title}</div>
-                          <div className="text-sm text-gray-600">
-                            {j.employer}
+										<div key={j.id} className="job-tile">
+											<div className="flex items-center justify-between">
+												<div>
+													{/* Title now links to job-view page */}
+													<div className="font-semibold">
+                            <Link to={`/job-view/${j.id}`} className="underline hover:no-underline">
+                              {j.job_title}
+                            </Link>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={j.rejected ? "Rejected" : j.status}
-                            onChange={async (e) => {
-                              const v = e.target.value;
-                              if (v === "Rejected") {
-                                await updateJobWithAuth(j.id, {
-                                  rejected: true,
-                                });
-                              } else {
-                                await updateJobWithAuth(j.id, {
-                                  status: v as any,
-                                  rejected: false,
-                                });
-                              }
-                            }}
-                            className="p-1 border rounded"
-                          >
-                            <option value="Pre-interview">Pre-interview</option>
-                            <option value="Interview">Interview</option>
-                            <option value="Offer">Offer</option>
-                            <option value="Rejected">Rejected</option>
-                          </select>
-                          <button
-                            title="Delete job"
-                            onClick={async () => {
-                              if (
-                                !confirm(
-                                  `Delete "${j.job_title}" at ${j.employer}?`
-                                )
-                              )
-                                return;
-                              await deleteJobWithAuth(j.id);
-                            }}
-                            className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                            >
-                              <path d={mdiTrashCanOutline} />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      <div className="text-sm mt-2">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Skills
-                        </label>
-                        <div className="job-description-container">
-                          {skillsIsOpen ? (
-                            <input
-                              className="w-full border rounded px-1 py-1 text-sm"
-                              defaultValue={skills}
-                              placeholder="Add skills, comma separated"
-                              onBlur={async (e) => {
-                                await updateJobWithAuth(j.id, {
-                                  skills: e.target.value,
-                                });
-                              }}
-                            />
-                          ) : (
-                            <div className="job-description-text">
-                              {skills || "N/A"}
-                            </div>
-                          )}
-                          <button
-                            className="job-description-toggle"
-                            aria-expanded={skillsIsOpen}
-                            onClick={() =>
-                              setSkillsOpen((m) => ({
-                                ...m,
-                                [j.id]: !m[j.id],
-                              }))
-                            }
-                          >
-                            {skillsIsOpen ? "Done" : skills ? "Edit" : "Add"}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="text-sm mt-2">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Description
-                        </label>
-                        <div className="job-description-container">
-                          {descIsOpen ? (
-                            <textarea
-                              id={`desc-${j.id}`}
-                              className="w-full border rounded px-1 py-1 text-sm"
-                              defaultValue={fullDesc}
-                              rows={3}
-                              onBlur={async (e) => {
-                                await updateJobWithAuth(j.id, {
-                                  description: e.target.value,
-                                });
-                              }}
-                            />
-                          ) : (
-                            <div className="job-description-text">
-                              {descPreview || "N/A"}
-                            </div>
-                          )}
-                          <button
-                            className="job-description-toggle"
-                            aria-expanded={descIsOpen}
-                            aria-controls={`desc-${j.id}`}
-                            onClick={() =>
-                              setDescOpen((m) => ({
-                                ...m,
-                                [j.id]: !m[j.id],
-                              }))
-                            }
-                          >
-                            {descIsOpen
-                              ? "Done"
-                              : hasDesc
-                              ? descNeedsToggle
-                                ? "More"
-                                : "Edit"
-                              : "Add"}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="text-sm mt-2">
-                        Date:{" "}
-                        {j.job_date
-                          ? new Date(j.job_date).toLocaleDateString()
-                          : "N/A"}
-                      </div>
-                      <div className="flex items-center gap-4 mt-2 text-sm">
-                        <label className="inline-flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={!!j.rejected}
-                            onChange={async (e) =>
-                              updateJobWithAuth(j.id, {
-                                rejected: e.target.checked,
-                              })
-                            }
-                          />
-                          <span>Rejected</span>
-                        </label>
-                        <label className="inline-flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={!!j.ghosted}
-                            onChange={async (e) =>
-                              updateJobWithAuth(j.id, {
-                                ghosted: e.target.checked,
-                              })
-                            }
-                          />
-                          <span>Ghosted</span>
-                        </label>
-                      </div>
-                    </div>
-                  );
+													<div className="text-sm text-gray-600">
+														{j.employer}
+													</div>
+												</div>
+												<div className="flex items-center gap-2">
+													<button
+														title="Delete job"
+														onClick={async () => {
+															if (
+																!confirm(
+																	`Delete "${j.job_title}" at ${j.employer}?`
+																)
+															)
+																return;
+															await deleteJobWithAuth(j.id);
+														}}
+														className="text-red-600 hover:text-red-800 px-2 py-1 rounded"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															className="h-5 w-5"
+															viewBox="0 0 24 24"
+															fill="currentColor"
+														>
+															<path d={mdiTrashCanOutline} />
+														</svg>
+													</button>
+												</div>
+											</div>
+
+											{/* Location area */}
+											<div className="text-sm mt-2">
+												<div className="job-location-container">
+													{locationIsOpen ? (
+														<input
+															className="w-full border rounded px-1 py-1 text-sm"
+															defaultValue={loc}
+															placeholder="City, State, Country"
+															onBlur={async (e) => {
+																const raw = (e.target.value || "").trim();
+																if (!raw) {
+																	await updateJobWithAuth(j.id, { location: undefined });
+																	setLocationOpen(m => ({ ...m, [j.id]: false }));
+																	return;
+																}
+																if (!isValidLocationInput(raw)) {
+																	alert("Invalid location. Use 'City, State' or 'Washington, DC'.");
+																	return;
+																}
+																await updateJobWithAuth(j.id, { location: raw });
+																setLocationOpen(m => ({ ...m, [j.id]: false }));
+															}}
+														/>
+													) : (
+														<div className="job-location-text">
+															{j.work_mode === "Remote"
+																? "Remote"
+																: `${displayLoc ?? "N/A"} (${String(j.work_mode).toLowerCase()})`}
+														</div>
+													)}
+													<button
+														className="job-location-toggle"
+														aria-expanded={locationIsOpen}
+														onClick={() =>
+															setLocationOpen((m) => ({
+																...m,
+																[j.id]: !m[j.id],
+															}))
+														}
+													>
+														{locationIsOpen ? "Done" : hasLocation ? "Edit" : "Add"}
+													</button>
+												</div>
+											</div>
+
+											<div className="text-sm mt-2">
+												Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+											</div>
+
+											<div className="flex items-center gap-4 mt-2 text-sm">
+												<label className="inline-flex items-center gap-2">
+													<input
+														type="checkbox"
+														checked={!!j.rejected}
+														onChange={async (e) =>
+															updateJobWithAuth(j.id, {
+																rejected: e.target.checked,
+															})
+														}
+													/>
+													<span>Rejected</span>
+												</label>
+												<label className="inline-flex items-center gap-2">
+													<input
+														type="checkbox"
+														checked={!!j.ghosted}
+														onChange={async (e) =>
+															updateJobWithAuth(j.id, {
+																ghosted: e.target.checked,
+															})
+														}
+													/>
+													<span>Ghosted</span>
+												</label>
+
+												{/* Inline status select placed adjacent to Ghosted checkbox */}
+												<select
+													value={j.status}
+													onChange={async (e) => {
+														const v = e.target.value;
+														await updateJobWithAuth(j.id, { status: v as any });
+													}}
+													className="status-select-inline"
+													aria-label="Status"
+												>
+													<option value="Pre-interview">Pre-interview</option>
+													<option value="Interview">Interview</option>
+													<option value="Offer">Offer</option>
+												</select>
+											</div>
+										</div>
+									);
                 })}
             </div>
           </div>

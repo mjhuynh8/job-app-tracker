@@ -16,6 +16,30 @@ async function connect() {
   return db;
 }
 
+function extractUserId(headers, bodyToken) {
+  let token = "";
+  const a = headers.Authorization || headers.authorization || "";
+  if (a.startsWith("Bearer ")) token = a.slice(7).trim();
+  if (!token && bodyToken) token = bodyToken.trim();
+  if (!token && headers.cookie) {
+    headers.cookie.split(";").forEach((p) => {
+      const [k, v] = p.split("=");
+      if (!token && v && /session|token|jwt|clerk/i.test(k)) token = v;
+    });
+  }
+  try {
+    const authInfo = typeof getAuth === "function" ? getAuth({ headers }) : null;
+    if (authInfo?.userId) return authInfo.userId;
+  } catch {}
+  if (token && token.split(".").length >= 2) {
+    try {
+      const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString("utf8"));
+      return claims.sub || claims.user_id || claims.userId || claims.uid || null;
+    } catch {}
+  }
+  return null;
+}
+
 exports.handler = async function (event) {
   const headers = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "" };
@@ -27,47 +51,8 @@ exports.handler = async function (event) {
 
   try {
     const reqHeaders = event.headers || {};
-    let userId = null;
-    try {
-      const authInfo = typeof getAuth === "function" ? getAuth({ headers: reqHeaders }) : null;
-      if (authInfo && authInfo.userId) userId = authInfo.userId;
-    } catch (e) { console.warn("jobs-delete getAuth failed", e); }
-
-    // fallback: try bearer token / cookie decode or body.token (UNVERIFIED) as last resort
-    let token = "";
-    const authHeader = reqHeaders.Authorization || reqHeaders.authorization || "";
-    if (authHeader && authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
-    if (!token && payload && typeof payload.token === "string") token = payload.token.trim();
-    if (!token && typeof reqHeaders.cookie === "string") {
-      try {
-        const pairs = reqHeaders.cookie.split(";").map((s) => s.trim());
-        for (const p of pairs) {
-          const [k, v] = p.split("=");
-          if (["__session", "session", "token", "jwt", "clerk_session"].includes(k) && v) {
-            token = v;
-            break;
-          }
-        }
-      } catch {}
-    }
-    if (!userId && token) {
-      try {
-        const parts = token.split(".");
-        if (parts.length >= 2) {
-          const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-          const decoded = Buffer.from(b64, "base64").toString("utf8");
-          const claims = JSON.parse(decoded);
-          userId = claims.sub || claims.user_id || claims.userId || claims.uid || null;
-          console.warn("jobs-delete: using UNVERIFIED token payload fallback for userId");
-        }
-      } catch (e) {
-        console.warn("jobs-delete token decode failed", e);
-      }
-    }
-
-    if (!userId) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-    }
+    const userId = extractUserId(reqHeaders, payload?.token);
+    if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
 
     const { id } = payload || {};
     if (!id) {
