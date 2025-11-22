@@ -7,8 +7,8 @@
 }
 
 .job-view-card {
-  width: 100%;
-  max-width: 40rem;
+  min-width: 40em;
+  max-width: 60rem;
   background: #ffffff;
   border-radius: 0.5rem;
   padding: 1.25rem;
@@ -48,49 +48,68 @@
   border-radius: 0.375rem;
 }
 
+.job-summary {
+  margin-bottom: 0.5rem;
+  color: #374151; /* gray-700 */
+  font-size: 0.975rem;
+  text-align: center;
+}
+
+/* Let the form be flexible so the textarea can grow */
+.job-view-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Expanded notes area: fill most of the section above the button */
 .notes-textarea {
-  min-height: 6rem;
+  min-height: clamp(12rem, 50vh, 16rem);
   resize: vertical;
   line-height: 1.5;
-    border: 1px solid #6f7275;
+  border: 1px solid #6f7275;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  box-shadow: 0 5px 5px rgba(0,0,0,0.1);
 }
 
 .add-job-btn {
   display: block;               /* centers via auto margins */
   margin: 0.75rem auto 0;       /* top spacing, horizontally centered */
   padding: 0.6rem 1rem;         /* comfortable hit area */
-  background: #2563eb;          /* blue-600 */
+  background: #2563eb;          /* base blue */
   color: #ffffff;
   border: none;
   border-radius: 0.375rem;
   box-shadow: 0 8px 20px rgba(37,99,235,0.18);
   font-weight: 550;
   cursor: pointer;              /* hand cursor on hover */
-  transition: transform 180ms cubic-bezier(.2,.9,.2,1), box-shadow 180ms ease, opacity 120ms;
+  transition: transform 180ms cubic-bezier(.2,.9,.2,1), box-shadow 180ms ease, opacity 120ms, background-color 140ms ease;
   will-change: transform, box-shadow;
 }
 
-/* Hover: subtle pop-out */
-.add-job-btn:hover[enabled] {
+/* Hover: pop-out and shade darker (only when enabled) */
+.add-job-btn:not(:disabled):hover {
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 14px 34px rgba(37,99,235,0.22);
   opacity: 0.98;
+  background: #1d4ed8; /* shade darker on hover */
 }
 
-/* Active (click): quick pressed animation */
-.add-job-btn:active[enabled] {
+/* Active (click): pressed animation (only when enabled) */
+.add-job-btn:not(:disabled):active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 6px 12px rgba(37,99,235,0.12);
+  background: #1e40af; /* slightly darker while active */
 }
 
-/* Keyboard focus for accessibility */
-.add-job-btn:focus[enabled] {
+/* Keyboard focus for accessibility (only when enabled) */
+.add-job-btn:not(:disabled):focus {
   outline: none;
   box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
   border-radius: 0.375rem;
 }
 
-/* Disabled state */
+/* Disabled state: greyed out and unclickable */
 .add-job-btn[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
