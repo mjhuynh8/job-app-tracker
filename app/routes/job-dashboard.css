@@ -155,6 +155,8 @@
   color: #111827;
   height: 32px;
   box-sizing: border-box;
+  border-radius: 50px;
+  text-align: center;
 }
 
 /* ensure consistent small-screen spacing for those top selects (optional but keeps them tidy) */
