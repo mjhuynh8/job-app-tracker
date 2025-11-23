@@ -1,3 +1,45 @@
+:root {
+  /* Adjust this to change the assumed tile height used to compute the 5-tile column height */
+  --job-tile-height: 72px;
+
+  /* height a bit larger than one tile for the horizontal rejected row */
+  --rejected-row-height: calc(var(--job-tile-height) + 16px);
+  /* grid parity for rejected row tile width */
+  --columns-count: 3;
+  --columns-gap: 1rem; /* Tailwind gap-4 */
+}
+
+/* Outer full-bleed background */
+.job-dashboard-background {
+  background-image: url("/assets/dashboard-texture.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: #ffffff; /* fallback */
+  box-sizing: border-box;
+
+  /* full-bleed horizontally */
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  margin-left: calc(-50vw + 0px);
+  margin-right: calc(-50vw + 0px);
+
+  /* ensure band covers viewport area between header and footer,
+     and include container paddings so when we offset them the edges align */
+  min-height: calc(100vh - var(--header-height) - var(--footer-height) + var(--container-pt) + var(--container-pb));
+
+  align-items: center;
+  justify-content: center;
+
+  /* remove internal band padding so image edges meet navbar/footer,
+     and offset the parent container's padding so the band touches edges */
+  padding: 0;
+  margin-top: calc(-1 * var(--container-pt));   /* cancel parent top padding (pt-6) */
+  margin-bottom: calc(-1 * var(--container-pb));/* cancel parent bottom padding (p-4) */
+}
+
+/* Inner centered container */
 .job-dashboard-container {
   /* limit width so controls + columns are centered and smaller than full-bleed background */
   max-width: 1100px;
@@ -16,72 +58,76 @@
   }
 }
 
-.job-dashboard section {
-  background: #ffffff;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(10, 25, 47, 0.04);
-  min-height: 120px;
-}
-.job-dashboard .overflow-auto {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
-}
-.job-dashboard select {
+/* Top selectors (match inline status styling) */
+#date-range-filter,
+#sort-by,
+#sort-order {
+  padding: 0.35rem 0.5rem;
   border: 1px solid #cbd5e1;
   border-radius: 0.25rem;
-}
-.job-description-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.job-description-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-width: 100%;
-}
-.job-description-toggle {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0 6px;
-  font-size: 14px;
-  color: #CCCCCC; /* slate-600 */
-}
-:root {
-  /* Adjust this to change the assumed tile height used to compute the 5-tile column height */
-  --job-tile-height: 72px;
-
-  /* height a bit larger than one tile for the horizontal rejected row */
-  --rejected-row-height: calc(var(--job-tile-height) + 16px);
-  /* grid parity for rejected row tile width */
-  --columns-count: 3;
-  --columns-gap: 1rem; /* Tailwind gap-4 */
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: #111827;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 50px;
+  text-align: center;
 }
 
-/* tiles container: shows approximately 5 job tiles tall, scrolls when needed */
-.job-dashboard .tiles {
-  max-height: calc(var(--job-tile-height) * 8);
-  overflow-y: auto;
-  /* keep horizontal layout stable */
-  overflow-x: hidden;
-  padding-right: 4px; /* avoids scrollbar overlapping content on some browsers */
+/* ensure consistent small-screen spacing for those top selects (optional but keeps them tidy) */
+@media (max-width: 640px) {
+  #date-range-filter,
+  #sort-by,
+  #sort-order {
+    padding: 0.35rem 0.5rem;
+  }
 }
 
-/* Ensure each tile has a reasonable minimum height to align with the tile-height assumption */
-.job-dashboard .tiles > div > .p-2 {
-  min-height: var(--job-tile-height);
+/* Column sections */
+.job-dashboard section {
+  background: rgba(255, 255, 255, 0.96); /* was #ffffff */
+  border-radius: 0.5rem;
+  border-color: #ffffff;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(10, 25, 47, 0.24);
+  min-height: 120px;
 }
 
-/* container that animates its height on collapse/expand */
+/* Section header + centered title */
+.job-column-header {
+  position: relative;
+}
+
+/* Center the column title while leaving the button in normal flow */
+.job-column-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* leave room for the right-side button so title doesn't overlap it */
+  max-width: calc(100% - 88px);
+  font-weight: 600;
+}
+
+/* Responsive: reduce max-width a bit on very narrow screens */
+@media (max-width: 420px) {
+  .job-column-title {
+    max-width: calc(100% - 56px);
+    font-size: 0.95rem;
+  }
+}
+
+/* Collapse container */
 .job-dashboard .tiles-container {
   overflow: hidden;
   transition: max-height 260ms cubic-bezier(0.2, 0.9, 0.2, 1);
-  max-height: calc(var(--job-tile-height) * 9); /* expanded height */
 }
 
-/* inner scroll area that provides the scrollbar when expanded */
+/* Scroll region inside columns */
 .job-dashboard .tiles-container .tiles-scroll {
   max-height: calc(var(--job-tile-height) * 9);
   overflow-y: auto;
@@ -89,24 +135,79 @@
   padding-right: 4px; /* avoid overlap with scrollbar */
 }
 
-/* ensure each tile has reasonable minimum height */
+/* Generic tiles list (legacy vertical) */
+.job-dashboard .tiles {
+  max-height: calc(var(--job-tile-height) * 8);
+  overflow-y: auto;
+  /* keep horizontal layout stable */
+  overflow-x: hidden;
+  padding-right: 4px; /* avoids scrollbar overlapping content on some browsers */
+}
+.job-dashboard .tiles > div > .p-2,
 .job-dashboard .tiles-container .p-2 {
   min-height: var(--job-tile-height);
 }
 
-/* Optional: thin scrollbar styling for modern browsers */
-.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar {
-  width: 10px;
-}
-.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.2);
-  border-radius: 8px;
-}
-.job-dashboard .tiles-container .tiles-scroll::-webkit-scrollbar-track {
-  background: transparent;
+/* Job tile core */
+.job-tile {
+  border: 2px solid rgba(15, 23, 42, 0.06);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 2px 4px rgba(15,23,42,0.30);
 }
 
-/* Combined location + work mode display */
+/* Slight lift on hover for affordance */
+.job-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 22px rgba(15,23,42,0.38);
+}
+
+/* Prevent the previous border-b rule from creating an extra line */
+/* If any leftover border-bottoms remain on job-tile children, hide them */
+.job-tile > .border-b {
+  border-bottom: none;
+}
+
+/* ensure each tile has a reasonable minimum height */
+.job-dashboard .tiles-container .p-2 {
+  min-height: var(--job-tile-height);
+}
+
+/* Per-status background variants */
+.col-pre-interview .job-tile {
+  background: #f3f4f6; /* gray-100 (soft neutral) */
+  border-color: rgba(15,23,42,0.06);
+}
+.col-interview .job-tile {
+  background: #fffbeb; /* amber-50 / pale yellow */
+  border-color: rgba(133,77,14,0.08);
+}
+.col-offer .job-tile {
+  background: #ecfdf5; /* emerald-50 / pale green */
+  border-color: rgba(6,95,70,0.06);
+}
+.col-rejected .job-tile {
+  background: #fff1f2; /* rose-50 / pale red */
+  border-color: rgba(127,29,29,0.06);
+}
+
+/* Ensure inner text contrasts well */
+.col-pre-interview .job-tile .font-semibold,
+.col-interview .job-tile .font-semibold,
+.col-offer .job-tile .font-semibold,
+.col-rejected .job-tile .font-semibold {
+  color: #061426; /* near-black for headings */
+}
+
+/* Ensure small spacing inside tile content still looks good */
+.job-tile .text-sm {
+  color: #475569; /* slate-600 for details */
+}
+
+/* Location display + edit */
 .job-location-container {
   display: flex;
   align-items: center;
@@ -138,6 +239,7 @@
   min-width: 0;
 }
 
+/* Inline status select */
 .status-select-inline {
   padding: 0.35rem 0.5rem;
   border: 1px solid #cbd5e1;
@@ -147,142 +249,6 @@
   color: #111827;
   /* align visually with checkboxes */
   height: 32px;
-}
-
-/* make the top-row selects explicitly match the inline status select */
-#date-range-filter,
-#sort-by,
-#sort-order {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.25rem;
-  background: #ffffff;
-  font-size: 0.9rem;
-  color: #111827;
-  height: 32px;
-  box-sizing: border-box;
-  border-radius: 50px;
-  text-align: center;
-}
-
-/* ensure consistent small-screen spacing for those top selects (optional but keeps them tidy) */
-@media (max-width: 640px) {
-  #date-range-filter,
-  #sort-by,
-  #sort-order {
-    padding: 0.35rem 0.5rem;
-  }
-}
-
-/* Job tile card */
-.job-tile {
-  border: 2px solid rgba(15, 23, 42, 0.06);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  background: #ffffff;
-  transition: transform 140ms ease, box-shadow 140ms ease;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.03);
-}
-
-/* Slight lift on hover for affordance */
-.job-tile:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 18px rgba(15,23,42,0.08);
-}
-
-/* Column-specific light backgrounds (match header colors but subtle) */
-.col-pre-interview .job-tile {
-  background: #f3f4f6; /* gray-100 (soft neutral) */
-  border-color: rgba(15,23,42,0.06);
-}
-.col-interview .job-tile {
-  background: #fffbeb; /* amber-50 / pale yellow */
-  border-color: rgba(133,77,14,0.08);
-}
-.col-offer .job-tile {
-  background: #ecfdf5; /* emerald-50 / pale green */
-  border-color: rgba(6,95,70,0.06);
-}
-.col-rejected .job-tile {
-  background: #fff1f2; /* rose-50 / pale red */
-  border-color: rgba(127,29,29,0.06);
-}
-
-/* Ensure inner text contrasts well */
-.col-pre-interview .job-tile .font-semibold,
-.col-interview .job-tile .font-semibold,
-.col-offer .job-tile .font-semibold,
-.col-rejected .job-tile .font-semibold {
-  color: #061426; /* near-black for headings */
-}
-
-/* Ensure small spacing inside tile content still looks good */
-.job-tile .text-sm {
-  color: #475569; /* slate-600 for details */
-}
-
-/* Prevent the previous border-b rule from creating an extra line */
-/* If any leftover border-bottoms remain on job-tile children, hide them */
-.job-tile > .border-b {
-  border-bottom: none;
-}
-
-.job-column-header {
-  position: relative;
-}
-
-/* Center the column title while leaving the button in normal flow */
-.job-column-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* leave room for the right-side button so title doesn't overlap it */
-  max-width: calc(100% - 88px);
-  font-weight: 600;
-}
-
-/* Responsive: reduce max-width a bit on very narrow screens */
-@media (max-width: 420px) {
-  .job-column-title {
-    max-width: calc(100% - 56px);
-    font-size: 0.95rem;
-  }
-}
-
-/* Full-bleed background for the dashboard page */
-.job-dashboard-background {
-  background-image: url("/assets/dashboard-texture.jpg");
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-color: #ffffff; /* fallback */
-  box-sizing: border-box;
-
-  /* full-bleed horizontally */
-  position: relative;
-  width: 100vw;
-  left: 50%;
-  margin-left: calc(-50vw + 0px);
-  margin-right: calc(-50vw + 0px);
-
-  /* ensure band covers viewport area between header and footer,
-     and include container paddings so when we offset them the edges align */
-  min-height: calc(100vh - var(--header-height) - var(--footer-height) + var(--container-pt) + var(--container-pb));
-
-  align-items: center;
-  justify-content: center;
-
-  /* remove internal band padding so image edges meet navbar/footer,
-     and offset the parent container's padding so the band touches edges */
-  padding: 0;
-  margin-top: calc(-1 * var(--container-pt));   /* cancel parent top padding (pt-6) */
-  margin-bottom: calc(-1 * var(--container-pb));/* cancel parent bottom padding (p-4) */
 }
 
 /* Rejected row: horizontal scroller matching full container width */
@@ -321,4 +287,36 @@
 }
 .job-dashboard .rejected-horizontal .tiles-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Misc existing utility */
+.job-dashboard .overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
+}
+
+/* Description (present elsewhere) */
+.job-description-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.job-description-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+.job-description-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 14px;
+  color: #CCCCCC; /* slate-600 */
+}
+
+/* Generic select baseline (already overridden per id) */
+.job-dashboard select {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
 }

@@ -1,5 +1,5 @@
 /* Global defaults and accessible color tokens */
-:root{
+:root {
   --color-header: #0f3a63; /* dark blue */
   /* gradient edge (used by page bands) — keep original mid-blue */
   --gradient-edge: #2b6cb0;
@@ -39,6 +39,31 @@ html, body {
   box-sizing: inherit;
 }
 
+/* Ensure the main structural bars span the viewport reliably */
+.app-header,
+.app-navbar,
+.app-footer {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  left: 0;
+  right: 0;
+}
+
+/* Ensure the primary page band (main) stretches edge-to-edge */
+main {
+  width: 100%;
+}
+
+/* Utility container width (keeps parity with tailwind container across pages) */
+.app-container {
+  max-width: var(--content-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+}
+
 /* Global heading styles */
 h1 {
   font-size: 2.25rem; /* 36px */
@@ -70,29 +95,4 @@ a {
   outline: 3px solid rgba(59,130,246,0.35); /* blue-500 translucent */
   outline-offset: 2px;
   border-radius: 4px;
-}
-
-/* Utility container width (keeps parity with tailwind container across pages) */
-.app-container {
-  max-width: var(--content-max-width);
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--page-gutter);
-  padding-right: var(--page-gutter);
-}
-
-/* Ensure the main structural bars span the viewport reliably */
-.app-header,
-.app-navbar,
-.app-footer {
-  width: 100%;
-  display: block;
-  box-sizing: border-box;
-  left: 0;
-  right: 0;
-}
-
-/* Ensure the primary page band (main) stretches edge-to-edge */
-main {
-  width: 100%;
 }
