@@ -10,7 +10,7 @@ import { mdiTrashCanOutline } from "@mdi/js";
 import { Link } from "react-router";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
-const USE_SERVER = (import.meta.env.VITE_USE_SERVER ?? "true") === "true";
+const USE_SERVER = false;
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 const topStatuses = ["Pre-interview", "Interview", "Offer"] as const;
@@ -134,7 +134,10 @@ export default function JobDashboard() {
 
   // On mount, load server-side jobs for the authenticated user
   useEffect(() => {
-    if (!USE_SERVER) return;
+    if (!USE_SERVER) {
+      // local-only dev: do not attempt to load from server
+      return;
+    }
     let mounted = true;
     (async () => {
       try {
@@ -146,34 +149,44 @@ export default function JobDashboard() {
         console.warn("job-dashboard: loadFromServer failed", err);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [getToken, loadFromServer]);
 
   // Helper: obtain a token and call updateJob with it (fallback to local update if token fail)
   async function updateJobWithAuth(id: string, patch: Partial<any>) {
+    if (!USE_SERVER) {
+      // local-only mode: just update local store
+      updateJob(id, patch);
+      return;
+    }
     try {
       const token = await getToken();
-      if (!token && USE_SERVER) {
-        alert("Auth token missing; cannot update in server mode.");
-        return;
-      }
       updateJob(id, patch, token ?? undefined);
     } catch (err) {
-      console.warn("updateJobWithAuth: token failure", err);
-      if (!USE_SERVER) updateJob(id, patch);
+      console.warn(
+        "updateJobWithAuth: failed to get token, applying local update only",
+        err
+      );
+      updateJob(id, patch);
     }
   }
+
   async function deleteJobWithAuth(id: string) {
+    if (!USE_SERVER) {
+      deleteJob(id);
+      return;
+    }
     try {
       const token = await getToken();
-      if (!token && USE_SERVER) {
-        alert("Auth token missing; cannot delete in server mode.");
-        return;
-      }
       deleteJob(id, token ?? undefined);
     } catch (err) {
-      console.warn("deleteJobWithAuth: token failure", err);
-      if (!USE_SERVER) deleteJob(id);
+      console.warn(
+        "deleteJobWithAuth: failed to get token, deleting locally",
+        err
+      );
+      deleteJob(id);
     }
   }
   const getStatusColor = (s: string) => {

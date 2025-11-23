@@ -6,7 +6,7 @@ import "./job-form.css";
 import { useAuth } from "@clerk/clerk-react";
 
 // Set to false to use localStorage-only mode for development.
-const USE_SERVER = (import.meta.env.VITE_USE_SERVER ?? "true") === "true";
+const USE_SERVER = false;
 
 export default function JobForm() {
   const { getToken } = useAuth();
@@ -64,48 +64,49 @@ export default function JobForm() {
       if (USE_SERVER) {
         try {
           const token = await getToken();
-          if (!token) {
-            alert("No auth token available; cannot create job in server mode.");
-            return;
+          if (token) {
+            const res = await fetch("/.netlify/functions/jobs-create", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ ...jobData, token }),
+            });
+            const text = await res.text();
+            if (!res.ok) {
+              console.warn("jobs-create failed, falling back to local add:", res.status, text);
+              throw new Error("Server create failed");
+            }
+            const savedJob = JSON.parse(text);
+            const normalized = {
+              id:
+                savedJob.id ??
+                (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
+              userid: savedJob.userId ?? savedJob.userId ?? undefined,
+              job_title: savedJob.job_title,
+              employer: savedJob.employer,
+              job_date: savedJob.job_date
+                ? typeof savedJob.job_date === "string"
+                  ? savedJob.job_date
+                  : new Date(savedJob.job_date).toISOString()
+                : undefined,
+              status: savedJob.status,
+              work_mode: savedJob.work_mode ?? "In-person",
+              location: savedJob.location ?? undefined,
+              rejected: !!savedJob.rejected,
+              ghosted: !!savedJob.ghosted,
+            };
+            addJob(normalized as any);
+          } else {
+            addJob(jobData as any);
           }
-          const res = await fetch("/.netlify/functions/jobs-create", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ ...jobData, token }),
-          });
-          const text = await res.text();
-          if (!res.ok) {
-            console.warn("jobs-create failed, falling back to local add:", res.status, text);
-            throw new Error("Server create failed");
-          }
-          const savedJob = JSON.parse(text);
-          const normalized = {
-            id:
-              savedJob.id ??
-              (savedJob._id ? String(savedJob._id) : Math.random().toString(36).slice(2)),
-            userid: savedJob.userId ?? savedJob.userId ?? undefined,
-            job_title: savedJob.job_title,
-            employer: savedJob.employer,
-            job_date: savedJob.job_date
-              ? typeof savedJob.job_date === "string"
-                ? savedJob.job_date
-                : new Date(savedJob.job_date).toISOString()
-              : undefined,
-            status: savedJob.status,
-            work_mode: savedJob.work_mode ?? "In-person",
-            location: savedJob.location ?? undefined,
-            rejected: !!savedJob.rejected,
-            ghosted: !!savedJob.ghosted,
-          };
-          addJob(normalized as any);
         } catch (err) {
-          console.warn("JobForm server create failed:", err);
-          alert("Server create failed.");
+          console.warn("JobForm server create failed, using local store:", err);
+          addJob(jobData as any);
         }
       } else {
+        // local-only mode
         addJob(jobData as any);
       }
 
