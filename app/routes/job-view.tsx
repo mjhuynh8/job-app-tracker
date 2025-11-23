@@ -3,13 +3,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router";
 import { useJobs } from "../lib/jobStore";
+import { useAuth } from "@clerk/clerk-react";
 import "./job-view.css";
 
-const USE_SERVER = false;
+const USE_SERVER = (import.meta.env.VITE_USE_SERVER ?? "true") === "true";
 
 export default function JobView() {
   const { id } = useParams() as { id: string };
   const { jobs, updateJob } = useJobs();
+  const { getToken } = useAuth();
   const job = useMemo(() => jobs.find((j) => j.id === id), [jobs, id]);
 
   const [notes, setNotes] = useState("");
@@ -28,7 +30,16 @@ export default function JobView() {
     setResubmitting(true);
     try {
       const patch = { notes: notes.trim() || undefined };
-      updateJob(job.id, patch);
+      if (USE_SERVER) {
+        const token = await getToken();
+        if (!token) {
+          alert("No auth token; cannot save notes in server mode.");
+        } else {
+          updateJob(job.id, patch, token);
+        }
+      } else {
+        updateJob(job.id, patch);
+      }
     } finally {
       setResubmitting(false);
     }
