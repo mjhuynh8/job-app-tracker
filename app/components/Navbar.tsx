@@ -1,7 +1,10 @@
-"use client";
-
 import { Link } from "react-router";
 import { useUser, useClerk } from "@clerk/clerk-react";
+import {
+  HomeIcon,
+  DocumentPlusIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/solid";
 import "./navbar.css";
 
 export function Navbar() {
@@ -23,22 +26,40 @@ export function Navbar() {
   return (
     <nav className="w-full bg-blue-600 text-white app-navbar">
       <div className="container mx-auto flex items-center justify-between p-4">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="font-semibold text-lg text-white">
+
+        {/* LEFT */}
+        <div className="flex items-center gap-6">
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-semibold text-lg text-white hover:underline"
+          >
+            <HomeIcon className="w-5 h-5" />
             Home
           </Link>
         </div>
-        <nav className="flex items-center gap-4">
+
+        {/* RIGHT */}
+        <nav className="flex items-center gap-6">
           {isSignedIn && (
             <>
-              <Link to="/job-form" className="hover:underline text-white">
+              <Link
+                to="/job-form"
+                className="flex items-center gap-2 hover:underline text-white"
+              >
+                <DocumentPlusIcon className="w-5 h-5" />
                 Job Form
               </Link>
-              <Link to="/job-dashboard" className="hover:underline text-white">
+
+              <Link
+                to="/job-dashboard"
+                className="flex items-center gap-2 hover:underline text-white"
+              >
+                <Squares2X2Icon className="w-5 h-5" />
                 Dashboard
               </Link>
             </>
           )}
+
           {isSignedIn ? (
             <button
               onClick={handleSignOut}

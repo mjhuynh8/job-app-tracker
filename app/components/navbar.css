@@ -16,3 +16,11 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+.app-navbar a svg {
+  transition: transform 0.2s ease;
+}
+
+.app-navbar a:hover svg {
+  transform: scale(1.1);
+}
