@@ -11,6 +11,7 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 export default function Layout() {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const isAuthPage = location.pathname.startsWith("/sign-in") || location.pathname.startsWith("/sign-up");
 
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
@@ -20,10 +21,13 @@ export default function Layout() {
 
           <main className="flex-1">
             {isHome ? (
-              // HOME: full-bleed hero, Home.tsx controls its own layout
+              // HOME: full-bleed, component controls own layout
+              <Outlet />
+            ) : isAuthPage ? (
+              // AUTH PAGES: full-bleed gradient background without white container
               <Outlet />
             ) : (
-              // OTHER PAGES: wrapped in white container like before
+              // OTHER PAGES: wrapped in white container
               <div className="bg-white">
                 <div className="container mx-auto p-4 pt-6 min-h-0">
                   <Outlet />

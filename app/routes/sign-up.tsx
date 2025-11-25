@@ -5,7 +5,7 @@ import "./sign-up.css";
 
 export default function SignUp() {
   return (
-    <div className="min-h-screen grid place-items-center p-6">
+    <div className="sign-up-page-container">
       <ClerkSignUp routing="path" path="/sign-up" />
     </div>
   );

@@ -1,8 +1,41 @@
+/* Container with animated gradient background */
+.sign-in-page-container {
+  position: relative;
+  min-height: 80vh; /* simplified: ensure adequate height */
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.sign-in-page-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.22), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.22), transparent 55%),
+    linear-gradient(to bottom, #f9fafb, #ffffff);
+  background-size: 200% 200%;
+  animation: gradientMove 12s ease-in-out infinite alternate;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
 .sign-in-page {
   background: #ffffff;
   padding: 1.25rem;
   border-radius: 0.5rem;
   box-shadow: 0 6px 18px rgba(10, 25, 47, 0.06);
+  position: relative;
+  z-index: 1;
 }
 .sign-in-page input {
   width: 100%;
