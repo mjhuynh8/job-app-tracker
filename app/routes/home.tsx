@@ -63,7 +63,7 @@ export default function Home() {
             track progress through your job finding journey.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+          <div className={`mt-8 flex flex-col sm:flex-row gap-3 ${signedIn ? 'sm:justify-start' : 'justify-center sm:justify-center'}`}>
             {signedIn ? (
               <>
                 <Link
@@ -84,7 +84,7 @@ export default function Home() {
                 to="/sign-up"
                 className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-white font-semibold shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                Get Started
+                Get Started!
               </Link>
             )}
           </div>
