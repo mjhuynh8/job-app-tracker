@@ -16,6 +16,7 @@
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
     "isbot": "^5.1.31",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.554.0",
     "mongodb": "^7.0.0",
     "react": "^19.1.1",
