@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useJobs } from "../lib/jobStore";
 import "./job-form.css";
 import { useAuth } from "@clerk/clerk-react";
+import Lottie from "lottie-react";
+import confettiAnimation from "public/assets/confetti.json";
 
 // Set to false to use localStorage-only mode for development.
 const USE_SERVER = false;
@@ -20,6 +22,7 @@ export default function JobForm() {
   const [workMode, setWorkMode] = useState<"In-person" | "Hybrid" | "Remote" | "">("");
   const [notes, setNotes] = useState("");
   const [submittedMsg, setSubmittedMsg] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
 
   function isValidDate(dateStr: string): boolean {
     const date = new Date(dateStr);
@@ -119,6 +122,9 @@ export default function JobForm() {
       setStatus("");
       setNotes("");
       setSubmittedMsg("Job added! Go check it out on your Dashboard!");
+      // show confetti briefly
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3500);
       setTimeout(() => setSubmittedMsg(""), 4000);
     } catch (err) {
       console.error("submit error", err);
@@ -129,13 +135,24 @@ export default function JobForm() {
   return (
     <div className="job-form-background">
       <div className="max-w-xl mx-auto job-form-page">
-        <div className="job-form-header">
-          <h1 className="job-form-title">Add a Job</h1>
-          <p className="job-form-subtitle">
-            Quickly save a job application — track dates, status, and notes.
-          </p>
-        </div>
-        <form onSubmit={submit} className="space-y-3">
+        {/* confetti overlay (non-interactive) */}
+        {showConfetti && (
+          <div className="confetti-overlay" aria-hidden="true">
+            <Lottie
+              animationData={confettiAnimation}
+              loop={false}
+              autoplay
+              className="confetti-lottie"
+            />
+          </div>
+        )}
+         <div className="job-form-header">
+           <h1 className="job-form-title">Add a Job</h1>
+           <p className="job-form-subtitle">
+             Quickly save a job application — track dates, status, and notes.
+           </p>
+         </div>
+         <form onSubmit={submit} className="space-y-3">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}

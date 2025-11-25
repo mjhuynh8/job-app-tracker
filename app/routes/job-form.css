@@ -3,6 +3,7 @@
   padding: 1.25rem;
   border-radius: 0.5rem;
   box-shadow: 0 6px 18px rgba(10,25,47,0.06);
+  position: relative; /* contain the confetti overlay */
 }
 .job-form-page input,
 .job-form-page select {
@@ -226,4 +227,24 @@
     font-size: 0.9rem;
     padding: 0 0.5rem;
   }
+}
+
+/* Confetti overlay (non-interactive) */
+.confetti-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* don't block form interaction */
+  z-index: 60;
+  overflow: hidden;
+}
+
+.confetti-lottie {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  max-height: 400px;
+  transform: translateY(-10%); /* nudge up a bit */
 }
