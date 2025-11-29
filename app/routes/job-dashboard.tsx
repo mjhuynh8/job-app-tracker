@@ -8,9 +8,15 @@ import { useAuth } from "@clerk/clerk-react";
 import { mdiPencilOutline } from '@mdi/js';
 import { mdiTrashCanOutline } from "@mdi/js";
 import { Link } from "react-router";
+import PieChartPanel from "../components/charts/PieChartPanel";
+import SankeyPanel from "../components/charts/SankeyPanel";
+import BarChartPanel from "../components/charts/BarChartPanel";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
 const USE_SERVER = false;
+
+// Compact range lookup (approx months -> days)
+const RANGE_DAYS: Record<string, number> = { week: 7, month: 30, "3months": 90, "6months": 180 };
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 const topStatuses = ["Pre-interview", "Interview", "Offer"] as const;
@@ -37,6 +43,120 @@ function columnClassForStatus(s: string) {
 	}
 }
 
+function ChartCard() {
+  const { jobs } = useJobs();
+  const [chartType, setChartType] = useState<"pie" | "sankey" | "bar">("pie");
+  const [pieMetric, setPieMetric] = useState<"work_mode" | "state" | "country" | "status">("work_mode");
+  const [sankeyDateFilter, setSankeyDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
+  const [barXMetric, setBarXMetric] = useState<"state" | "city" | "country" | "work_mode">("city");
+
+  // Helper to filter jobs for Sankey based on its specific filter
+  const sankeyFilteredJobs = jobs.filter(j => {
+    if (sankeyDateFilter === "all") return true;
+    if (!j.job_date) return false;
+    const days = RANGE_DAYS[sankeyDateFilter];
+    if (!days) return true;
+    return new Date(j.job_date) >= new Date(Date.now() - days * 864e5);
+  });
+
+  const sankeyEndDate = new Date();
+  const sankeyStartDate =
+    sankeyDateFilter === "all"
+      ? null
+      : new Date(Date.now() - (RANGE_DAYS[sankeyDateFilter] || 0) * 864e5);
+
+  return (
+    <section className="border rounded p-3 bg-white/95 shadow flex flex-col">
+      <header className="flex flex-col gap-3 mb-2">
+        {/* Changed justify-between to gap-2 to keep selector next to title */}
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-slate-800">Chart</h3>
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value as any)}
+            className="p-1 border rounded text-sm"
+          >
+            <option value="pie">Pie</option>
+            <option value="sankey">Sankey</option>
+            <option value="bar">Bar</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-slate-700">
+          {chartType === "pie" && (
+            // Changed w-full to w-auto to prevent spanning full width
+            <label className="flex items-center gap-2 w-auto">
+              Metric:
+              <select
+                value={pieMetric}
+                onChange={(e) => setPieMetric(e.target.value as any)}
+                // Removed flex-1 so it doesn't grow unnecessarily
+                className="p-1 border rounded"
+              >
+                <option value="work_mode">Work Mode</option>
+                <option value="state">State</option>
+                <option value="country">Country</option>
+                <option value="status">Status</option>
+              </select>
+            </label>
+          )}
+
+          {chartType === "sankey" && (
+            // Changed w-full to w-auto
+            <label className="flex items-center gap-2 w-auto">
+              Range:
+              <select
+                value={sankeyDateFilter}
+                onChange={(e) => setSankeyDateFilter(e.target.value as any)}
+                // Removed flex-1
+                className="p-1 border rounded"
+              >
+                <option value="all">All time</option>
+                <option value="week">Past week</option>
+                <option value="month">Past month</option>
+                <option value="3months">3 months</option>
+                <option value="6months">6 months</option>
+              </select>
+            </label>
+          )}
+
+          {chartType === "bar" && (
+            // Changed w-full to w-auto
+            <label className="flex items-center gap-2 w-auto">
+              X-Axis:
+              <select
+                value={barXMetric}
+                onChange={(e) => setBarXMetric(e.target.value as any)}
+                // Removed flex-1
+                className="p-1 border rounded"
+              >
+                <option value="city">City</option>
+                <option value="state">State</option>
+                <option value="country">Country</option>
+                <option value="work_mode">Work Mode</option>
+              </select>
+            </label>
+          )}
+        </div>
+      </header>
+
+      <div className="mt-2 flex-1">
+        {chartType === "pie" ? (
+          <PieChartPanel metric={pieMetric} />
+        ) : chartType === "sankey" ? (
+          <SankeyPanel
+            jobs={sankeyFilteredJobs}
+            startDateISO={sankeyStartDate ? sankeyStartDate.toISOString() : null}
+            endDateISO={sankeyEndDate.toISOString()}
+          />
+        ) : chartType === "bar" ? (
+          <BarChartPanel xMetric={barXMetric} />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export default function JobDashboard() {
   const { jobs, updateJob, deleteJob, loadFromServer } = useJobs();
   const { getToken } = useAuth();
@@ -51,9 +171,6 @@ export default function JobDashboard() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [sortBy, setSortBy] = useState<"date" | "employer" | "title">("date");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
-
-  // Compact range lookup (approx months -> days)
-  const RANGE_DAYS: Record<string, number> = { week: 7, month: 30, "3months": 90, "6months": 180 };
 
   // Condensed date filter
   function passesDateFilter(j: any) {
@@ -196,9 +313,17 @@ export default function JobDashboard() {
     return "text-gray-500"; // pre interviewv is default
   };
 
+  // derive filtered jobs and timeline range
+  const filteredJobs = jobs.filter(passesDateFilter);
+  const endDate = new Date();
+  const startDate =
+    dateFilter === "all"
+      ? null
+      : new Date(Date.now() - (RANGE_DAYS[dateFilter] || 0) * 864e5);
+
   return (
-    <div className="job-dashboard-background">
-      <div className="job-dashboard-container job-dashboard">
+    <div className="job-dashboard-background min-h-screen flex flex-col">
+      <div className="job-dashboard-container job-dashboard mx-auto w-full max-w-7xl p-4">
         {/* selectors row */}
         <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
           <div className="flex items-center gap-2">
@@ -561,6 +686,15 @@ export default function JobDashboard() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Charts section: 3 equal cards - Full Width */}
+      <div className="w-full px-4 pb-8 mt-2">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 w-full">
+          <ChartCard />
+          <ChartCard />
+          <ChartCard />
+        </div>
       </div>
     </div>
   );

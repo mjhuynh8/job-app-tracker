@@ -6,4 +6,13 @@ import netlifyPlugin from "@netlify/vite-plugin-react-router";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths(), netlifyPlugin(),],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    include: ["recharts", "@nivo/sankey", "@nivo/core"],
+  },
+  ssr: {
+    noExternal: ["recharts", "@nivo/sankey", "@nivo/core"],
+  },
 });
