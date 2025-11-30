@@ -69,7 +69,7 @@ export function JobProvider({ children }: { children: any }) {
     try {
       const stored = JSON.parse(localStorage.getItem("jobs") || "[]") as any[];
       const normalized = stored.map((j) => ({
-        id: j.id ?? Math.random().toString(36).slice(2),
+        id: j.id || (typeof crypto !== "undefined" ? crypto.randomUUID() : `job-${Date.now()}-${Math.floor(Math.random()*1e6)}`),
         userid: j.userid,
         job_title: String(j.job_title ?? ""),
         employer: String(j.employer ?? ""),
@@ -142,7 +142,7 @@ export function JobProvider({ children }: { children: any }) {
 
   function addJob(j: Omit<Job, "id">, token?: string) {
     const normalized: Job = {
-      id: Math.random().toString(36).slice(2),
+      id: typeof crypto !== "undefined" ? crypto.randomUUID() : `job-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
       userid: j.userid,
       job_title: j.job_title,
       employer: j.employer,

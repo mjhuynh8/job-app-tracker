@@ -5,12 +5,14 @@ import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 
 import { useAuth } from "@clerk/clerk-react";
-import { mdiPencilOutline } from '@mdi/js';
-import { mdiTrashCanOutline } from "@mdi/js";
+import { mdiPencilOutline, mdiTrashCanOutline, mdiChevronLeft, mdiChevronRight } from '@mdi/js';
 import { Link } from "react-router";
 import PieChartPanel from "../components/charts/PieChartPanel";
 import SankeyPanel from "../components/charts/SankeyPanel";
 import BarChartPanel from "../components/charts/BarChartPanel";
+import ApplicationVelocityChart from "../components/charts/ApplicationVelocityChart";
+import CalendarHeatmap from "../components/charts/CalendarHeatmap";
+import KeywordAnalysisChart from "../components/charts/KeywordAnalysisChart";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
 const USE_SERVER = false;
@@ -20,6 +22,9 @@ const RANGE_DAYS: Record<string, number> = { week: 7, month: 30, "3months": 90, 
 
 const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 const topStatuses = ["Pre-interview", "Interview", "Offer"] as const;
+
+type ChartType = "pie" | "sankey" | "bar" | "velocity" | "heatmap" | "keywords";
+
 function EditIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 26 26" fill="currentColor" aria-hidden>
@@ -43,12 +48,13 @@ function columnClassForStatus(s: string) {
 	}
 }
 
-function ChartCard() {
+function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
   const { jobs } = useJobs();
-  const [chartType, setChartType] = useState<"pie" | "sankey" | "bar">("pie");
+  const [chartType, setChartType] = useState<ChartType>(initialType);
   const [pieMetric, setPieMetric] = useState<"work_mode" | "state" | "country" | "status">("work_mode");
   const [sankeyDateFilter, setSankeyDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
   const [barXMetric, setBarXMetric] = useState<"state" | "city" | "country" | "work_mode">("city");
+  const nowRef = useRef<number>(Date.now()); // freeze per card
 
   // Helper to filter jobs for Sankey based on its specific filter
   const sankeyFilteredJobs = jobs.filter(j => {
@@ -59,14 +65,14 @@ function ChartCard() {
     return new Date(j.job_date) >= new Date(Date.now() - days * 864e5);
   });
 
-  const sankeyEndDate = new Date();
+  const sankeyEndDate = new Date(nowRef.current);
   const sankeyStartDate =
     sankeyDateFilter === "all"
       ? null
-      : new Date(Date.now() - (RANGE_DAYS[sankeyDateFilter] || 0) * 864e5);
+      : new Date(nowRef.current - (RANGE_DAYS[sankeyDateFilter] || 0) * 864e5);
 
   return (
-    <section className="border rounded p-3 bg-white/95 shadow flex flex-col">
+    <section className="border rounded p-3 bg-white/95 shadow flex flex-col h-full">
       <header className="flex flex-col gap-3 mb-2">
         {/* Changed justify-between to gap-2 to keep selector next to title */}
         <div className="flex items-center gap-2">
@@ -79,6 +85,9 @@ function ChartCard() {
             <option value="pie">Pie</option>
             <option value="sankey">Sankey</option>
             <option value="bar">Bar</option>
+            <option value="velocity">Velocity</option>
+            <option value="heatmap">Heatmap</option>
+            <option value="keywords">Keywords</option>
           </select>
         </div>
 
@@ -140,7 +149,7 @@ function ChartCard() {
         </div>
       </header>
 
-      <div className="mt-2 flex-1">
+      <div className="mt-2 flex-1 chart-panel-wrapper">
         {chartType === "pie" ? (
           <PieChartPanel metric={pieMetric} />
         ) : chartType === "sankey" ? (
@@ -151,9 +160,87 @@ function ChartCard() {
           />
         ) : chartType === "bar" ? (
           <BarChartPanel xMetric={barXMetric} />
+        ) : chartType === "velocity" ? (
+          <ApplicationVelocityChart />
+        ) : chartType === "heatmap" ? (
+          <CalendarHeatmap />
+        ) : chartType === "keywords" ? (
+          <KeywordAnalysisChart />
         ) : null}
       </div>
     </section>
+  );
+}
+
+function ChartCarousel() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const CHART_TYPES: ChartType[] = ["pie", "sankey", "bar", "velocity", "heatmap", "keywords"];
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const container = scrollRef.current;
+      // Scroll by roughly one card width + gap
+      const cardWidth = container.firstElementChild?.clientWidth || 300;
+      const gap = 16; 
+      const scrollAmount = cardWidth + gap;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      
+      if (direction === "left") {
+        // Loop to end if at start
+        if (container.scrollLeft <= 10) {
+            container.scrollTo({ left: maxScroll, behavior: "smooth" });
+        } else {
+            container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+        }
+      } else {
+        // Loop to start if at end
+        if (container.scrollLeft >= maxScroll - 10) {
+            container.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+            container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="conveyor-belt-container group">
+      <div className="conveyor-belt-inner">
+        {/* Left Arrow - Taller, semi-transparent */}
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-slate-900/20 hover:bg-slate-900/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-l-lg backdrop-blur-sm"
+          aria-label="Scroll left"
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-md">
+            <path d={mdiChevronLeft} />
+          </svg>
+        </button>
+
+        {/* Scroll Container */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar scroll-smooth px-1"
+        >
+          {CHART_TYPES.map((type) => (
+            <div key={type} className="min-w-[100%] md:min-w-[calc(50%-0.5rem)] xl:min-w-[calc(33.333%-0.67rem)] flex-shrink-0">
+              <ChartCard initialType={type} />
+            </div>
+          ))}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-slate-900/20 hover:bg-slate-900/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-r-lg backdrop-blur-sm"
+          aria-label="Scroll right"
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-md">
+            <path d={mdiChevronRight} />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -171,6 +258,7 @@ export default function JobDashboard() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [sortBy, setSortBy] = useState<"date" | "employer" | "title">("date");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
+  const nowRef = useRef<number>(Date.now()); // stable timestamp per mount
 
   // Condensed date filter
   function passesDateFilter(j: any) {
@@ -315,11 +403,11 @@ export default function JobDashboard() {
 
   // derive filtered jobs and timeline range
   const filteredJobs = jobs.filter(passesDateFilter);
-  const endDate = new Date();
+  const endDate = new Date(nowRef.current);
   const startDate =
     dateFilter === "all"
       ? null
-      : new Date(Date.now() - (RANGE_DAYS[dateFilter] || 0) * 864e5);
+      : new Date(nowRef.current - (RANGE_DAYS[dateFilter] || 0) * 864e5);
 
   return (
     <div className="job-dashboard-background min-h-screen flex flex-col">
@@ -469,7 +557,7 @@ export default function JobDashboard() {
                           </div>
 
                           <div className="text-sm mt-2">
-                            Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                            Date: {j.job_date ? new Date(j.job_date).toLocaleDateString("en-US") : "N/A"}
                           </div>
 
                           <div className="flex items-center gap-4 mt-2 text-sm">
@@ -636,7 +724,7 @@ export default function JobDashboard() {
                       </div>
 
                       <div className="text-sm mt-2">
-                        Date: {j.job_date ? new Date(j.job_date).toLocaleDateString() : "N/A"}
+                        Date: {j.job_date ? new Date(j.job_date).toLocaleDateString("en-US") : "N/A"}
                       </div>
 
                       <div className="flex items-center gap-4 mt-2 text-sm">
@@ -688,14 +776,8 @@ export default function JobDashboard() {
         </section>
       </div>
 
-      {/* Charts section: 3 equal cards - Full Width */}
-      <div className="w-full px-4 pb-8 mt-2">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 w-full">
-          <ChartCard />
-          <ChartCard />
-          <ChartCard />
-        </div>
-      </div>
+      {/* Charts section: Carousel */}
+      <ChartCarousel />
     </div>
   );
 }

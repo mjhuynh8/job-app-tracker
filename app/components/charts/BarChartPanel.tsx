@@ -88,7 +88,7 @@ export default function BarChartPanel({ xMetric }: { xMetric: XMetric }) {
   }, [jobs, xMetric]);
 
   return (
-    <div className="w-full h-[420px]">
+    <div className="w-full h-[320px]">
       <ResponsiveContainer>
         <BarChart data={data} margin={{ top: 8, right: 12, left: 12, bottom: 36 }}>
           <XAxis dataKey="label" tick={{ fontSize: 12 }} interval={0} angle={-25} dy={18} />

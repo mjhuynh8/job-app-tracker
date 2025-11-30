@@ -52,7 +52,8 @@ export default function SankeyPanel({
 
   const rangeText = useMemo(() => {
     if (!startDateISO || !endDateISO) return "All time";
-    return `${new Date(startDateISO).toLocaleDateString()} — ${new Date(endDateISO).toLocaleDateString()}`;
+    // Explicit locale to avoid SSR/client mismatch
+    return `${new Date(startDateISO).toLocaleDateString("en-US")} — ${new Date(endDateISO).toLocaleDateString("en-US")}`;
   }, [startDateISO, endDateISO]);
 
   if (data.links.length === 0) {
@@ -61,10 +62,10 @@ export default function SankeyPanel({
 
   return (
     <div className="w-full">
-      <div className="w-full h-[420px]">
+      <div className="w-full h-[320px]">
         <ResponsiveSankey
           data={data}
-          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+          margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
           align="justify"
           colors={(node: any) => node.nodeColor}
           nodeOpacity={1}
@@ -82,6 +83,7 @@ export default function SankeyPanel({
           
           // Labels
           enableLabels={true}
+          label={(node) => `${node.id} (${node.value})`} // Custom label with count
           labelPosition="inside"
           labelOrientation="horizontal"
           labelPadding={16}
