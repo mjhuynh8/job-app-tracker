@@ -50,12 +50,6 @@ export default function SankeyPanel({
     return { nodes, links };
   }, [jobs]);
 
-  const rangeText = useMemo(() => {
-    if (!startDateISO || !endDateISO) return "All time";
-    // Explicit locale to avoid SSR/client mismatch
-    return `${new Date(startDateISO).toLocaleDateString("en-US")} — ${new Date(endDateISO).toLocaleDateString("en-US")}`;
-  }, [startDateISO, endDateISO]);
-
   if (data.links.length === 0) {
     return <div className="text-sm text-slate-600 p-4">No data to render for this period.</div>;
   }
@@ -99,7 +93,6 @@ export default function SankeyPanel({
           )}
         />
       </div>
-      <div className="mt-2 text-xs text-slate-500 text-center">Date range: {rangeText}</div>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 "use client"; // <-- uncommented to enable client component features like hooks
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { useJobs } from "../lib/jobStore";
 import "./job-dashboard.css";
 
 import { useAuth } from "@clerk/clerk-react";
-import { mdiPencilOutline, mdiTrashCanOutline, mdiChevronLeft, mdiChevronRight } from '@mdi/js';
+import { mdiPencilOutline, mdiTrashCanOutline, mdiChevronLeft, mdiChevronRight, mdiChevronDown, mdiChevronUp } from '@mdi/js';
 import { Link } from "react-router";
 import PieChartPanel from "../components/charts/PieChartPanel";
 import SankeyPanel from "../components/charts/SankeyPanel";
@@ -24,6 +25,15 @@ const statuses = ["Pre-interview", "Interview", "Offer", "Rejected"] as const;
 const topStatuses = ["Pre-interview", "Interview", "Offer"] as const;
 
 type ChartType = "pie" | "sankey" | "bar" | "velocity" | "heatmap" | "keywords";
+
+const CHART_DESCRIPTIONS: Record<ChartType, string> = {
+  pie: "Distribution by category. Best for: Seeing the balance of your applications across work modes or locations.",
+  sankey: "Flow from application to offer. Best for: Identifying bottlenecks in your funnel (e.g. many apps but few interviews).",
+  bar: "Counts by location/mode. Best for: Understanding your geographic focus.",
+  velocity: "Applications over time. Best for: Tracking your consistency and momentum.",
+  heatmap: "Daily activity calendar. Best for: Visualizing your application habits.",
+  keywords: "Common job title terms. Best for: Tailoring resume keywords to your target roles."
+};
 
 function EditIcon() {
   return (
@@ -55,6 +65,10 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
   const [sankeyDateFilter, setSankeyDateFilter] = useState<"all" | "week" | "month" | "3months" | "6months">("all");
   const [barXMetric, setBarXMetric] = useState<"state" | "city" | "country" | "work_mode">("city");
   const nowRef = useRef<number>(Date.now()); // freeze per card
+  
+  // Tooltip state
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   // Helper to filter jobs for Sankey based on its specific filter
   const sankeyFilteredJobs = jobs.filter(j => {
@@ -72,7 +86,7 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
       : new Date(nowRef.current - (RANGE_DAYS[sankeyDateFilter] || 0) * 864e5);
 
   return (
-    <section className="border rounded p-3 bg-white/95 shadow flex flex-col h-full">
+    <section className="chart-card border p-3 flex flex-col h-full">
       <header className="flex flex-col gap-3 mb-2">
         {/* Changed justify-between to gap-2 to keep selector next to title */}
         <div className="flex items-center gap-2">
@@ -80,7 +94,10 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
           <select
             value={chartType}
             onChange={(e) => setChartType(e.target.value as any)}
-            className="p-1 border rounded text-sm"
+            className="p-1 border rounded text-sm cursor-help"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseMove={(e) => setTooltipPos({ x: e.clientX + 20, y: e.clientY + 20 })}
+            onMouseLeave={() => setShowTooltip(false)}
           >
             <option value="pie">Pie</option>
             <option value="sankey">Sankey</option>
@@ -89,6 +106,16 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
             <option value="heatmap">Heatmap</option>
             <option value="keywords">Keywords</option>
           </select>
+
+          {showTooltip && typeof document !== 'undefined' && createPortal(
+            <div 
+              className="fixed z-[9999] bg-slate-800 text-white text-xs p-2 rounded shadow-lg max-w-[220px] pointer-events-none border border-slate-600"
+              style={{ left: tooltipPos.x, top: tooltipPos.y }}
+            >
+              {CHART_DESCRIPTIONS[chartType]}
+            </div>,
+            document.body
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-sm text-slate-700">
@@ -113,7 +140,7 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
           {chartType === "sankey" && (
             // Changed w-full to w-auto
             <label className="flex items-center gap-2 w-auto">
-              Range:
+              Date Range:
               <select
                 value={sankeyDateFilter}
                 onChange={(e) => setSankeyDateFilter(e.target.value as any)}
@@ -173,35 +200,71 @@ function ChartCard({ initialType = "pie" }: { initialType?: ChartType }) {
 }
 
 function ChartCarousel() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const CHART_TYPES: ChartType[] = ["pie", "sankey", "bar", "velocity", "heatmap", "keywords"];
+  const [charts, setCharts] = useState<ChartType[]>(["pie", "sankey", "bar", "velocity", "heatmap", "keywords"]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const actionRef = useRef<"left" | null>(null);
 
   const scroll = (direction: "left" | "right") => {
-    if (scrollRef.current) {
-      const container = scrollRef.current;
-      // Scroll by roughly one card width + gap
-      const cardWidth = container.firstElementChild?.clientWidth || 300;
-      const gap = 16; 
-      const scrollAmount = cardWidth + gap;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      
-      if (direction === "left") {
-        // Loop to end if at start
-        if (container.scrollLeft <= 10) {
-            container.scrollTo({ left: maxScroll, behavior: "smooth" });
-        } else {
-            container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-        }
-      } else {
-        // Loop to start if at end
-        if (container.scrollLeft >= maxScroll - 10) {
-            container.scrollTo({ left: 0, behavior: "smooth" });
-        } else {
-            container.scrollBy({ left: scrollAmount, behavior: "smooth" });
-        }
-      }
+    if (isAnimating || !containerRef.current) return;
+    
+    const container = containerRef.current;
+    const firstCard = container.firstElementChild as HTMLElement;
+    if (!firstCard) return;
+    
+    const cardWidth = firstCard.offsetWidth;
+    const gap = 16; // gap-4 is 1rem
+    const moveAmount = cardWidth + gap;
+
+    setIsAnimating(true);
+
+    if (direction === "right") {
+      // Slide left then swap
+      container.style.transition = "transform 0.3s ease-in-out";
+      container.style.transform = `translateX(-${moveAmount}px)`;
+
+      setTimeout(() => {
+        container.style.transition = "none";
+        container.style.transform = "translateX(0)";
+        setCharts((prev) => [...prev.slice(1), prev[0]]);
+        setIsAnimating(false);
+      }, 300);
+    } else {
+      // Swap then slide right (handled in useLayoutEffect)
+      actionRef.current = "left";
+      setCharts((prev) => [prev[prev.length - 1], ...prev.slice(0, -1)]);
     }
   };
+
+  useLayoutEffect(() => {
+    if (actionRef.current === "left" && containerRef.current) {
+      const container = containerRef.current;
+      const firstCard = container.firstElementChild as HTMLElement;
+      if (!firstCard) return;
+
+      const cardWidth = firstCard.offsetWidth;
+      const gap = 16;
+      const moveAmount = cardWidth + gap;
+
+      // Instantly shift to hide the new first element
+      container.style.transition = "none";
+      container.style.transform = `translateX(-${moveAmount}px)`;
+      
+      // Force reflow
+      container.getBoundingClientRect();
+
+      // Animate to 0
+      container.style.transition = "transform 0.3s ease-in-out";
+      container.style.transform = "translateX(0)";
+      
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+        container.style.transition = "none";
+        actionRef.current = null;
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [charts]);
 
   return (
     <div className="conveyor-belt-container group">
@@ -218,15 +281,17 @@ function ChartCarousel() {
         </button>
 
         {/* Scroll Container */}
-        <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar scroll-smooth px-1"
-        >
-          {CHART_TYPES.map((type) => (
-            <div key={type} className="min-w-[100%] md:min-w-[calc(50%-0.5rem)] xl:min-w-[calc(33.333%-0.67rem)] flex-shrink-0">
-              <ChartCard initialType={type} />
-            </div>
-          ))}
+        <div className="overflow-hidden">
+          <div
+            ref={containerRef}
+            className="flex gap-4 pb-2 px-1"
+          >
+            {charts.map((type) => (
+              <div key={type} className="min-w-[100%] md:min-w-[calc(50%-0.5rem)] xl:min-w-[calc(33.333%-0.67rem)] flex-shrink-0">
+                <ChartCard initialType={type} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Right Arrow */}
@@ -248,6 +313,7 @@ export default function JobDashboard() {
   const { jobs, updateJob, deleteJob, loadFromServer } = useJobs();
   const { getToken } = useAuth();
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [isCarouselOpen, setIsCarouselOpen] = useState(false); // Collapsed by default
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     statuses.reduce(
       (acc, s) => ({ ...acc, [s]: true }),
@@ -410,8 +476,9 @@ export default function JobDashboard() {
       : new Date(nowRef.current - (RANGE_DAYS[dateFilter] || 0) * 864e5);
 
   return (
-    <div className="job-dashboard-background min-h-screen flex flex-col">
-      <div className="job-dashboard-container job-dashboard mx-auto w-full max-w-7xl p-4">
+    <div className="job-dashboard-background flex flex-col">
+      {/* Added flex-1 to ensure container takes available space */}
+      <div className="job-dashboard-container job-dashboard mx-auto w-full max-w-7xl p-4 flex-1">
         {/* selectors row */}
         <div className="flex flex-wrap items-center justify-end gap-4 mb-2">
           <div className="flex items-center gap-2">
@@ -776,8 +843,37 @@ export default function JobDashboard() {
         </section>
       </div>
 
-      {/* Charts section: Carousel */}
-      <ChartCarousel />
+      {/* Charts section: Carousel (Collapsible) */}
+      <div 
+        className={`w-full transition-all duration-500 ease-in-out overflow-hidden ${
+          isCarouselOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <ChartCarousel />
+      </div>
+
+      {/* Toggle Band */}
+      <button
+        onClick={() => setIsCarouselOpen(!isCarouselOpen)}
+        className="carousel-toggle-band"
+        aria-label={isCarouselOpen ? "Collapse charts" : "Show charts"}
+      >
+        {isCarouselOpen ? (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-sm">
+            <path d={mdiChevronUp} />
+          </svg>
+        ) : (
+          <>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-sm">
+              <path d={mdiChevronDown} />
+            </svg>
+            <span>Application Analytics</span>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" className="drop-shadow-sm">
+              <path d={mdiChevronDown} />
+            </svg>
+          </>
+        )}
+      </button>
     </div>
   );
 }

@@ -29,8 +29,9 @@
      and include container paddings so when we offset them the edges align */
   min-height: calc(100vh - var(--header-height) - var(--footer-height) + var(--container-pt) + var(--container-pb));
 
-  align-items: center;
-  justify-content: center;
+  /* Use flex column layout without centering to allow content to fill height naturally */
+  display: flex;
+  flex-direction: column;
 
   /* remove internal band padding so image edges meet navbar/footer,
      and offset the parent container's padding so the band touches edges */
@@ -85,7 +86,8 @@
 
 /* Column sections */
 .job-dashboard section {
-  background: rgba(255, 255, 255, 0.96); /* was #ffffff */
+  background-color: rgba(253, 251, 247, 0.96); /* Warm paper white */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
   border-radius: 0.5rem;
   border-color: #ffffff;
   padding: 0.75rem;
@@ -249,6 +251,11 @@
   color: #111827;
   /* align visually with checkboxes */
   height: 32px;
+  /* Responsive: shrink to fit container */
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 /* Rejected row: horizontal scroller matching full container width */
@@ -363,23 +370,23 @@
 /* Conveyor Belt Background */
 .conveyor-belt-container {
   position: relative;
-  width: 100%; /* Changed from 100vw to 100% to fit parent */
-  background-color: #334155; /* slate-700 */
-  padding: 1.5rem 1rem; /* Added horizontal padding */
+  width: 100%;
+  background-color: #5D4037; /* Wood brown */
+  padding: 1.5rem 1rem;
   margin-top: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0; /* Removed margin to close gap with toggle band */
   box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
-  /* Subtle texture */
+  /* Wood grain texture */
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(255,255,255,0.03) 0px,
-    rgba(255,255,255,0.03) 2px,
+    rgba(255,255,255,0.04) 0px,
+    rgba(255,255,255,0.04) 2px,
     transparent 2px,
-    transparent 8px
+    transparent 10px
   );
-  border-top: 4px solid #1e293b;
-  border-bottom: 4px solid #1e293b;
-  border-radius: 0.75rem; /* Added rounded corners */
+  border-top: 4px solid #3E2723;
+  border-bottom: 4px solid #3E2723;
+  border-radius: 0.75rem;
 }
 
 /* Inner container to align with page content */
@@ -390,5 +397,45 @@
 
 /* Force chart height reduction via wrapper in ChartCard */
 .chart-panel-wrapper > div {
-  height: 320px !important; /* Increased from 260px */
+  height: 320px !important;
+}
+
+/* Chart Card Custom Styling */
+.chart-card {
+  border-radius: 1.25rem; /* Increased radius */
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35); /* Deeper shadow */
+  background-color: rgba(253, 251, 247, 0.96);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Toggle Band for Carousel */
+.carousel-toggle-band {
+  width: 100%;
+  background-color: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  gap: 0.75rem;
+}
+
+.carousel-toggle-band:hover {
+  background-color: rgba(15, 23, 42, 0.4);
+}
+
+.carousel-toggle-band svg {
+  transform: scaleX(1.6); /* Wider arrow */
+  opacity: 0.6; /* Semitransparent */
+}
+
+.carousel-toggle-band span {
+  opacity: 0.6;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  user-select: none;
 }
