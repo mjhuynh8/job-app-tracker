@@ -1,0 +1,44 @@
+.rejected-horizontal {
+  background-color: rgba(253, 251, 247, 0.96);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  border-radius: 0.5rem;
+  border-color: #ffffff;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(10, 25, 47, 0.24);
+  min-height: 120px;
+}
+
+.rejected-horizontal .tiles-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: var(--columns-gap);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-right: 4px;
+  padding-bottom: 2px;
+  height: auto;
+  max-height: none;
+}
+
+.rejected-horizontal .job-tile {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  background: #fef2f2;
+  border-color: rgba(127, 29, 29, 0.06);
+  box-sizing: border-box;
+  width: calc(
+    (100% - (var(--columns-gap) * (var(--columns-count) - 1)))
+    / var(--columns-count)
+  );
+}
+
+.rejected-horizontal .tiles-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.rejected-horizontal .tiles-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+}
+.rejected-horizontal .tiles-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

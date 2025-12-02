@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Dashboard component styles */
+@import "./components/dashboard/JobColumn.css";
+@import "./components/dashboard/JobTile.css";
+@import "./components/dashboard/RejectedRow.css";
+@import "./components/dashboard/ChartCard.css";
+@import "./components/dashboard/ChartCarousel.css";
+
 :root {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";

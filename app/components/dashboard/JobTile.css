@@ -1,0 +1,124 @@
+/* Job tile core */
+.job-tile {
+  border: 2px solid rgba(15, 23, 42, 0.06);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 2px 4px rgba(15,23,42,0.30);
+}
+
+/* Slight lift on hover for affordance */
+.job-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 22px rgba(15,23,42,0.38);
+}
+
+.job-tile > .border-b {
+  border-bottom: none;
+}
+
+/* Per-status background variants */
+.col-pre-interview .job-tile {
+  background: #f3f4f6;
+  border-color: rgba(15,23,42,0.06);
+}
+.col-interview .job-tile {
+  background: #fffbeb;
+  border-color: rgba(133,77,14,0.08);
+}
+.col-offer .job-tile {
+  background: #ecfdf5;
+  border-color: rgba(6,95,70,0.06);
+}
+.col-rejected .job-tile {
+  background: #fff1f2;
+  border-color: rgba(127,29,29,0.06);
+}
+
+.col-pre-interview .job-tile .font-semibold,
+.col-interview .job-tile .font-semibold,
+.col-offer .job-tile .font-semibold,
+.col-rejected .job-tile .font-semibold {
+  color: #061426;
+}
+
+.job-tile .text-sm {
+  color: #475569;
+}
+
+/* Location display + edit */
+.job-location-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.job-location-text {
+  color: #374151;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.job-location-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.job-location-container input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Inline status select */
+.status-select-inline {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  font-size: 0.75rem;
+  color: #111827;
+  height: 32px;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+/* Checkbox styling */
+.job-tile input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #a4aab2;
+  border-radius: 0.25rem;
+  background-color: #ececec;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.job-tile input[type="checkbox"]:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.job-tile input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+}
