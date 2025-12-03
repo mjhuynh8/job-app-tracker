@@ -66,7 +66,7 @@ exports.handler = async function (event) {
   try {
     const reqHeaders = event.headers || {};
     const userId = extractUserId(reqHeaders);
-    if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+    if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized (no Clerk userId)" }) };
 
     const database = await connect();
     const coll = database.collection("jobs");

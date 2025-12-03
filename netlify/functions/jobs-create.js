@@ -48,6 +48,15 @@ async function connect() {
   return db;
 }
 
+// Pre-check required envs and fail fast with descriptive messages
+function assertEnv() {
+  const errs = [];
+  if (!process.env.MONGODB_URI) errs.push("MONGODB_URI is not set");
+  if (!process.env.CLERK_SECRET_KEY) errs.push("CLERK_SECRET_KEY is not set");
+  if (!process.env.MONGODB_DB_NAME) errs.push("MONGODB_DB_NAME is not set (set it or include DB name in URI)");
+  return errs;
+}
+
 exports.handler = async function (event, context) {
   // Basic CORS handling for browser requests from your frontend
   const headers = {
@@ -72,6 +81,16 @@ exports.handler = async function (event, context) {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
+  }
+
+  // New: env validation before doing anything else
+  const envErrors = assertEnv();
+  if (envErrors.length) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: `Server misconfigured: ${envErrors.join("; ")}` }),
     };
   }
 
@@ -171,7 +190,7 @@ exports.handler = async function (event, context) {
       }
     }
     if (!userId) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized (no Clerk userId)" }) };
     }
 
     const { job_title, employer, job_date, status, work_mode, location, notes } = payload || {};
@@ -208,7 +227,15 @@ exports.handler = async function (event, context) {
       console.log("jobs-create: inserted:", result.insertedId);
     } catch (dbErr) {
       console.error("jobs-create insertOne() failed:", dbErr);
-      return { statusCode: 500, headers, body: JSON.stringify({ error: "Internal Server Error" }) };
+      const msg =
+        dbErr && dbErr.message
+          ? `DB insert failed: ${dbErr.message}`
+          : "DB insert failed";
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: msg }),
+      };
     }
 
     // Successful response
@@ -219,6 +246,11 @@ exports.handler = async function (event, context) {
     };
   } catch (err) {
     console.error("jobs-create handler error:", err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Internal Server Error" }) };
+    const msg = err?.message || "Internal Server Error";
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: msg }),
+    };
   }
 };

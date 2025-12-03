@@ -79,6 +79,13 @@ export default function JobForm() {
             const text = await res.text();
             if (!res.ok) {
               console.warn("jobs-create failed, falling back to addJob:", res.status, text);
+              // New: surface error returned by server
+              try {
+                const j = JSON.parse(text);
+                setSubmittedMsg(j?.error ? `Server error: ${j.error}` : "Server create failed");
+              } catch {
+                setSubmittedMsg("Server create failed");
+              }
               throw new Error("Server create failed");
             }
             const savedJob = JSON.parse(text);
