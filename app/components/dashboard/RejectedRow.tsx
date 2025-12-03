@@ -26,6 +26,12 @@ export default function RejectedRow({ jobs, onUpdate, onDelete, className }: Rej
     }
   }, [isOpen, jobs]);
 
+  const handleBulkDelete = async () => {
+    if (!jobs.length) return;
+    if (!window.confirm("Delete all rejected jobs?")) return;
+    for (const j of jobs) await onDelete(j.id);
+  };
+
   return (
     <section className={`mt-4 border rounded p-2 flex flex-col ${className} rejected-horizontal`}>
       <header className="flex items-center justify-between job-column-header">
@@ -38,6 +44,15 @@ export default function RejectedRow({ jobs, onUpdate, onDelete, className }: Rej
         >
           {isOpen ? "▾" : "▸"}
         </button>
+        {jobs.length > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            className="ml-2 px-2 py-1 text-xs font-semibold rounded bg-red-500 text-white hover:bg-red-600"
+            title="Delete all rejected jobs"
+          >
+            Delete all
+          </button>
+        )}
       </header>
       <div
         className="mt-2 tiles-container"
