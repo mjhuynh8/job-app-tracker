@@ -78,7 +78,7 @@ export default function JobForm() {
             });
             const text = await res.text();
             if (!res.ok) {
-              console.warn("jobs-create failed, falling back to local add:", res.status, text);
+              console.warn("jobs-create failed, falling back to addJob:", res.status, text);
               throw new Error("Server create failed");
             }
             const savedJob = JSON.parse(text);
@@ -100,13 +100,16 @@ export default function JobForm() {
               rejected: !!savedJob.rejected,
               ghosted: !!savedJob.ghosted,
             };
-            addJob(normalized as any);
+            addJob(normalized as any); // client state update (server insert already done)
           } else {
-            addJob(jobData as any);
+            // Try a second token fetch and let addJob attempt server persistence
+            const retryToken = await getToken().catch(() => null);
+            addJob(jobData as any, retryToken ?? undefined);
           }
         } catch (err) {
-          console.warn("JobForm server create failed, using local store:", err);
-          addJob(jobData as any);
+          console.warn("JobForm server create failed, using local store with token attempt:", err);
+          const retryToken = await getToken().catch(() => null);
+          addJob(jobData as any, retryToken ?? undefined);
         }
       } else {
         // local-only mode

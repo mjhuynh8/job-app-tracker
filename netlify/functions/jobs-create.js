@@ -7,6 +7,17 @@ if (typeof getAuth !== "function") {
 
 // Use short server selection/connect timeouts so the function fails fast instead of hanging.
 // Adjust numbers if you need a longer window, but keep them small for serverless.
+function pickDbName() {
+  const envName = (process.env.MONGODB_DB_NAME || "").trim();
+  if (envName) return envName;
+  try {
+    const uri = process.env.MONGODB_URI || "";
+    const m = uri.match(/mongodb(\+srv)?:\/\/[^/]+\/([^?]+)/i);
+    if (m && m[2]) return m[2];
+  } catch {}
+  return "jobtracker";
+}
+
 const client = new MongoClient(process.env.MONGODB_URI, {
   // how long to wait to find a suitable server (ms)
   serverSelectionTimeoutMS: 5000,
@@ -21,15 +32,13 @@ async function connect() {
   if (!db) {
     try {
       await client.connect();
-      // Respect explicit DB env var or default to "jobtracker"
-      const dbName = process.env.MONGODB_DB_NAME || "jobtracker";
-      db = client.db(dbName);
-      console.log("jobs-create: connected to MongoDB, using database:", db.databaseName);
-      // defensive: if somehow we landed in "local", switch to intended DB
+      const desired = pickDbName();
+      db = client.db(desired);
       if (db.databaseName === "local") {
-        console.warn("jobs-create: connected DB is 'local' — forcing configured DB name:", dbName);
-        db = client.db(dbName);
+        console.warn("jobs-create: connected DB resolved to 'local'; forcing desired DB:", desired);
+        db = client.db(desired);
       }
+      console.log("jobs-create: using DB:", db.databaseName);
     } catch (connectErr) {
       console.error("jobs-create: MongoDB connect() failed:", connectErr);
       // Re-throw to be handled by the caller so we return a helpful response
@@ -143,46 +152,26 @@ exports.handler = async function (event, context) {
       }
     }
 
-    // Use Clerk server helper to validate and extract authenticated user information
+    // Clerk auth and permissive fallback
     let userId = null;
     try {
-      // Pass both headers and cookies to getAuth (some runtimes expect cookie separately)
+      const reqHeaders = event.headers || {};
       const getAuthArg = { headers: reqHeaders, cookies: reqHeaders.cookie ? reqHeaders.cookie : undefined };
       const authInfo = typeof getAuth === "function" ? getAuth(getAuthArg) : null;
-      console.log("jobs-create getAuth keys:", authInfo ? Object.keys(authInfo) : null);
-      if (authInfo && authInfo.userId) {
-        userId = authInfo.userId;
-      }
+      if (authInfo && authInfo.userId) userId = authInfo.userId;
     } catch (getAuthErr) {
       console.warn("jobs-create getAuth() failed:", getAuthErr);
     }
-
-    // If getAuth didn't give us a userId, but we received a Bearer token, attempt a
-    // non-verified decode of the JWT payload to extract a candidate user id.
-    // WARNING: This is an UNVERIFIED fallback for convenience/debugging only.
-    // Do NOT rely on this for production-level auth — configure CLERK_SECRET_KEY
-    // in Netlify environment and prefer getAuth.
     if (!userId && token && token.split(".").length >= 2) {
       try {
         const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString("utf8"));
-        const candidate = claims.sub || claims.user_id || claims.userId || claims.uid;
-        if (candidate) {
-          userId = candidate;
-          console.log("jobs-create userId extracted from token (UNVERIFIED):", userId);
-        }
+        userId = claims.sub || claims.user_id || claims.userId || claims.uid || null;
       } catch (jwtErr) {
         console.warn("jobs-create JWT decoding failed", jwtErr);
       }
     }
-
-    // At this point, we should have a userId from Clerk or from the token.
-    // If no userId can be determined, reject the request.
     if (!userId) {
-      return {
-        statusCode: 401,
-        headers,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
+      return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
     }
 
     const { job_title, employer, job_date, status, work_mode, location, notes } = payload || {};
@@ -216,14 +205,10 @@ exports.handler = async function (event, context) {
     try {
       const db = await connect();
       result = await db.collection("jobs").insertOne(newDoc);
-      console.log("jobs-create: inserted document into MongoDB:", result.insertedId);
+      console.log("jobs-create: inserted:", result.insertedId);
     } catch (dbErr) {
-      console.error("jobs-create: MongoDB insertOne() failed:", dbErr);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: "Internal Server Error" }),
-      };
+      console.error("jobs-create insertOne() failed:", dbErr);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Internal Server Error" }) };
     }
 
     // Successful response
@@ -234,10 +219,6 @@ exports.handler = async function (event, context) {
     };
   } catch (err) {
     console.error("jobs-create handler error:", err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: "Internal Server Error" }),
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Internal Server Error" }) };
   }
 };

@@ -1,6 +1,18 @@
 const { MongoClient, ObjectId } = require("mongodb");
 const clerkSdk = require("@clerk/clerk-sdk-node");
 const getAuth = clerkSdk.getAuth ?? clerkSdk.default?.getAuth ?? clerkSdk;
+
+function pickDbName() {
+  const envName = (process.env.MONGODB_DB_NAME || "").trim();
+  if (envName) return envName;
+  try {
+    const uri = process.env.MONGODB_URI || "";
+    const m = uri.match(/mongodb(\+srv)?:\/\/[^/]+\/([^?]+)/i);
+    if (m && m[2]) return m[2];
+  } catch {}
+  return "jobtracker";
+}
+
 const client = new MongoClient(process.env.MONGODB_URI, {
   serverSelectionTimeoutMS: 5000,
   connectTimeoutMS: 5000,
@@ -10,8 +22,13 @@ let db;
 async function connect() {
   if (!db) {
     await client.connect();
-    const dbName = process.env.MONGODB_DB_NAME || "jobtracker";
-    db = client.db(dbName);
+    const desired = pickDbName();
+    db = client.db(desired);
+    if (db.databaseName === "local") {
+      console.warn("jobs-update: resolved DB 'local'; forcing desired DB:", desired);
+      db = client.db(desired);
+    }
+    console.log("jobs-update: using DB:", db.databaseName);
   }
   return db;
 }

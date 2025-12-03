@@ -2,6 +2,19 @@
 
 A React web application created to track all your job applications in one convenient location.
 
+## Deployment notes (Netlify + MongoDB)
+- Set these environment variables in Netlify:
+  - VITE_CLERK_PUBLISHABLE_KEY=pk_...
+  - CLERK_SECRET_KEY=sk_...    <-- required for serverless auth
+  - MONGODB_URI=mongodb+srv://user:pass@cluster0.mongodb.net/jobtracker?retryWrites=true&w=majority
+  - MONGODB_DB_NAME=jobtracker
+- Ensure your MongoDB user has readWrite on the MONGODB_DB_NAME database.
+
+### About the "local" database and oplog.rs
+- In MongoDB Atlas, the "local" database and its collection "oplog.rs" are part of the replica set internals.
+- It can have millions of documents and is expected.
+- Do not delete "local" or "oplog.rs"; it is not created by this app.
+
 ## Getting Started
 
 ### Prerequisites
