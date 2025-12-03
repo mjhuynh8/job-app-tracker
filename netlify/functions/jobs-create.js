@@ -53,7 +53,8 @@ function assertEnv() {
   const errs = [];
   const warns = [];
   if (!process.env.MONGODB_URI) errs.push("MONGODB_URI is not set");
-  // DB name can be provided either by MONGODB_DB_NAME or via the URI path
+
+  // DB name can be provided either by MONGODB_DB_NAME or via the URI path; if neither, we'll default.
   const hasDbNameEnv = !!(process.env.MONGODB_DB_NAME && process.env.MONGODB_DB_NAME.trim());
   const hasDbNameInUri = (() => {
     try {
@@ -64,7 +65,10 @@ function assertEnv() {
       return false;
     }
   })();
-  if (!hasDbNameEnv && !hasDbNameInUri) errs.push("No database name: set MONGODB_DB_NAME or include DB name in MONGODB_URI");
+  if (!hasDbNameEnv && !hasDbNameInUri) {
+    warns.push("No database name found; defaulting to 'jobtracker'");
+  }
+
   // CLERK_SECRET_KEY is ideal for verified auth but optional due to JWT fallback
   if (!process.env.CLERK_SECRET_KEY) {
     warns.push("CLERK_SECRET_KEY not set; using unverified JWT fallback (development only)");
@@ -101,9 +105,7 @@ exports.handler = async function (event, context) {
 
   // New: env validation before doing anything else
   const { errs, warns } = assertEnv();
-  if (warns.length) {
-    console.warn("jobs-create env warnings:", warns);
-  }
+  if (warns.length) console.warn("jobs-create env warnings:", warns);
   if (errs.length) {
     return {
       statusCode: 500,
