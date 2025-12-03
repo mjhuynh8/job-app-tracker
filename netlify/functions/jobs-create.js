@@ -76,6 +76,18 @@ function assertEnv() {
   return { errs, warns };
 }
 
+function normalizeLocation(input) {
+  if (!input) return undefined;
+  const s = String(input).trim();
+  if (!s) return undefined;
+  if (/^washington\s*,?\s*dc$/i.test(s)) return "Washington, DC, United States";
+  const parts = s.split(",").map((p) => p.trim()).filter(Boolean);
+  const [city = "", stateRaw = "", countryRaw = ""] = parts;
+  const state = stateRaw && stateRaw.length <= 3 ? stateRaw.toUpperCase() : stateRaw;
+  const country = countryRaw || "United States";
+  return [city, state, country].filter(Boolean).join(", ");
+}
+
 exports.handler = async function (event, context) {
   // Basic CORS handling for browser requests from your frontend
   const headers = {
@@ -224,7 +236,7 @@ exports.handler = async function (event, context) {
       };
     }
 
-    // Create a new job application document
+    // Create a new job application document (omit optional fields when blank)
     const newDoc = {
       userid: userId,
       job_title,
@@ -232,12 +244,14 @@ exports.handler = async function (event, context) {
       job_date: new Date(job_date),
       status,
       work_mode,
-      location: location || undefined,
-      notes: notes || undefined,
       rejected: false,
       ghosted: false,
       createdAt: new Date(),
     };
+
+    const normLoc = normalizeLocation(location);
+    if (normLoc) newDoc.location = normLoc;
+    if (typeof notes === "string" && notes.trim()) newDoc.notes = notes.trim();
 
     // Insert the new document into the "jobs" collection
     let result;

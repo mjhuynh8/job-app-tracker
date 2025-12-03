@@ -185,8 +185,8 @@ export function JobProvider({ children }: { children: any }) {
           job_date: normalized.job_date,
           status: normalized.status,
           work_mode: normalized.work_mode,
-          location: normalized.location,
-          notes: normalized.notes,
+          ...(normalized.location ? { location: normalized.location } : {}),
+          ...(normalized.notes ? { notes: normalized.notes } : {}),
         }),
       })
         .then((r) => r.json())

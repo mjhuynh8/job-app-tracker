@@ -108,11 +108,18 @@ exports.handler = async function (event) {
     const update = { $set: {} };
 
     for (const k of Object.keys(patch)) {
-      if (k === "job_date") update.$set.job_date = new Date(patch.job_date);
-      else if (k === "location") {
-        if (!isValidLocationInput(patch.location))
-          return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid location format" }) };
-        update.$set.location = normalizeLocation(patch.location);
+      if (k === "job_date") {
+        update.$set.job_date = new Date(patch.job_date);
+      } else if (k === "location") {
+        const raw = typeof patch.location === "string" ? patch.location.trim() : "";
+        if (!raw) {
+          // remove field when blank
+          update.$unset = { ...(update.$unset || {}), location: "" };
+        } else {
+          if (!isValidLocationInput(raw))
+            return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid location format" }) };
+          update.$set.location = normalizeLocation(raw);
+        }
       } else if (k === "work_mode") {
         if (!["In-person", "Hybrid", "Remote"].includes(patch.work_mode))
           return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid work_mode" }) };
@@ -121,9 +128,18 @@ exports.handler = async function (event) {
         if (!["Pre-interview","Interview","Offer"].includes(patch.status))
           return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid status" }) };
         update.$set.status = patch.status;
-      } else if (k === "ghosted" || k === "rejected") update.$set[k] = !!patch[k];
-      else if (k === "notes") update.$set.notes = patch.notes || undefined;
-      else update.$set[k] = patch[k];
+      } else if (k === "ghosted" || k === "rejected") {
+        update.$set[k] = !!patch[k];
+      } else if (k === "notes") {
+        const rawNotes = typeof patch.notes === "string" ? patch.notes.trim() : "";
+        if (!rawNotes) {
+          update.$unset = { ...(update.$unset || {}), notes: "" };
+        } else {
+          update.$set.notes = rawNotes;
+        }
+      } else {
+        update.$set[k] = patch[k];
+      }
     }
 
     const res = await coll.findOneAndUpdate(filter, update, { returnDocument: "after" });
