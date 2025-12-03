@@ -51,10 +51,25 @@ async function connect() {
 // Pre-check required envs and fail fast with descriptive messages
 function assertEnv() {
   const errs = [];
+  const warns = [];
   if (!process.env.MONGODB_URI) errs.push("MONGODB_URI is not set");
-  if (!process.env.CLERK_SECRET_KEY) errs.push("CLERK_SECRET_KEY is not set");
-  if (!process.env.MONGODB_DB_NAME) errs.push("MONGODB_DB_NAME is not set (set it or include DB name in URI)");
-  return errs;
+  // DB name can be provided either by MONGODB_DB_NAME or via the URI path
+  const hasDbNameEnv = !!(process.env.MONGODB_DB_NAME && process.env.MONGODB_DB_NAME.trim());
+  const hasDbNameInUri = (() => {
+    try {
+      const uri = process.env.MONGODB_URI || "";
+      const m = uri.match(/mongodb(\+srv)?:\/\/[^/]+\/([^?]+)/i);
+      return !!(m && m[2]);
+    } catch {
+      return false;
+    }
+  })();
+  if (!hasDbNameEnv && !hasDbNameInUri) errs.push("No database name: set MONGODB_DB_NAME or include DB name in MONGODB_URI");
+  // CLERK_SECRET_KEY is ideal for verified auth but optional due to JWT fallback
+  if (!process.env.CLERK_SECRET_KEY) {
+    warns.push("CLERK_SECRET_KEY not set; using unverified JWT fallback (development only)");
+  }
+  return { errs, warns };
 }
 
 exports.handler = async function (event, context) {
@@ -85,12 +100,15 @@ exports.handler = async function (event, context) {
   }
 
   // New: env validation before doing anything else
-  const envErrors = assertEnv();
-  if (envErrors.length) {
+  const { errs, warns } = assertEnv();
+  if (warns.length) {
+    console.warn("jobs-create env warnings:", warns);
+  }
+  if (errs.length) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: `Server misconfigured: ${envErrors.join("; ")}` }),
+      body: JSON.stringify({ error: `Server misconfigured: ${errs.join("; ")}` }),
     };
   }
 

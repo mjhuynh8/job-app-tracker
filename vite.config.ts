@@ -6,7 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    reactRouter({ ssr: false }), // force client-only build to prevent SSR manifest mismatch
+    reactRouter(), // react-router vite plugin expects no arguments
     tsconfigPaths(),
     // netlifyPlugin(), // remove to avoid server handler generation
   ],
