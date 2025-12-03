@@ -11,7 +11,7 @@ import RejectedRow from "../components/dashboard/RejectedRow";
 import ChartCarousel from "../components/dashboard/ChartCarousel";
 
 // feature flag mirrors jobStore setting; set to false for local-only dev
-const USE_SERVER = false;
+const USE_SERVER = true;
 
 // Compact range lookup (approx months -> days)
 const RANGE_DAYS: Record<string, number> = { week: 7, month: 30, "3months": 90, "6months": 180 };
