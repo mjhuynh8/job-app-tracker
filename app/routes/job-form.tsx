@@ -5,7 +5,7 @@ import { useJobs } from "../lib/jobStore";
 import "./job-form.css";
 import { useAuth } from "@clerk/clerk-react";
 import Lottie from "lottie-react";
-import confettiAnimation from "public/assets/confetti.json";
+import confettiAnimation from "../../public/assets/Confetti.json";
 
 // Set to false to use localStorage-only mode for development.
 const USE_SERVER = true;
